@@ -58,6 +58,13 @@ public class ThreadNew {
         t3.start();
     }
 
+    @Test
+    public void testStart(){
+        Thread t1 = new Thread(new Thread02());
+        t1.start();
+        t1.start();
+    }
+
     /**
      * 方式一: 通过继承Thread
      */
