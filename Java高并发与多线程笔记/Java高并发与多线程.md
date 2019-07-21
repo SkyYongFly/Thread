@@ -231,6 +231,142 @@ public class ThreadStop {
 里面说明了弃用该方法的原因，大致意思就是如果使用stop方法去终止一个线程，那么该线程所持有的监视器（一般来说锁对象）都会直接释放掉，而这些监视器是保证线程之间同步的措施，如果突然释放掉，那么其他线程就会获的访问临界区资源的资格，进而操作临界区资源，可能导致临界区资源破坏。
 
 仔细想想，我们线程之间同时去操作临界区资源，为了保证临界区资源安全性需要对访问该临界区的线程进行同步，常常通过锁的方式，线程获取到了锁，进行临界区资源操作，操作完成释放掉锁，其他线程抢占CPU获取调用得到了锁，进入临界区进行操作，大家先后依次有序进行，保证了共享资源的安全性。现在某个线程获取到了锁，正在操作临界区资源，突然接收到stop方法，被迫中止，释放掉锁了，这个时候其他正在阻塞等待的线程就有机会了，获取到了锁进行临界区资源操作，但是问题来了，前一个突然被中止的线程操作数据刚到一半，现在又被其他线程操作，那么数据就被破坏了，比如原本要 a=1 进行加5操作，依次加1操作，才加到3就突然退出了，后续的线程应该在前一个加了5的基础上操作，现在在加了3的基础上操作，明显最终的数据结果就会出问题，这正是stop方法非安全性被舍弃的原因。我们可以通过程序模拟下相关的场景：
+```
+package com.skylaker.stop;
+
+/**
+ * 线程直接stop产生问题场景模拟
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/20 9:53 PM
+ */
+public class ThreadStop2 {
+    private static User user  = new User();
+
+    public static void main(String[] args){
+        // 开启读线程不停的读
+        new ReadThread().start();
+
+        // 开启写线程不停的写
+        while(true){
+            WriteThread writeThread = new WriteThread();
+            writeThread.start();
+
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            writeThread.stop();
+        }
+    }
+
+    /**
+     * 读线程：读取User对象的age和name，当不一致的时候输出
+     */
+    static class ReadThread extends Thread {
+        @Override
+        public void run() {
+            while (true){
+                synchronized (user){
+                    if(user.getAge() != Integer.parseInt(user.getName())){
+                        System.out.println("当前User的age和name不一致，age："
+                                + user.getAge()
+                                + ", name: "
+                                + user.getName());
+                    }
+                }
+
+                // 临时让出资源避免读线程一直持有锁对象，
+                // 写线程无法操作，观察不出现象
+                Thread.yield();
+            }
+        }
+    }
+
+    /**
+     * 写线程：不停的设置User的 age、name值，且值一致（忽略类型）
+     */
+    static class WriteThread extends Thread {
+        @Override
+        public void run() {
+            while (true){
+                synchronized (user){
+                    int value = (int) (System.currentTimeMillis() / 1000);
+                    user.setAge(value);
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    user.setName(String.valueOf(value));
+                }
+
+                Thread.yield();
+            }
+        }
+    }
+
+    static class User {
+        private int age;
+
+        private String name;
+
+        User() {
+            // 初始化设值，避免读线程刚启动疯狂读取没有值报错
+            age = 1;
+            name = "1";
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public void setAge(int age) {
+            this.age = age;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "User{" +
+                    "age=" + age +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
+    }
+}
+```
+执行结果：
+
+![b13e3a80a456587789f85b8eebd28b7a](Java高并发与多线程.resources/E08F5A41-5EC5-4D68-8C0C-1E1413744812.png)
+
+可以看到测试代码输出了意外场景的数据，仔细观察发现，发生意外时候name的值（对应的int值）总是比age的值小1，这是为什么呢？因为我们的写线程中是先设置age的值得，但是在到设置name的值中间有个短暂的间隔，但正是因为这个间隔就产生了问题，因为在此期间，写线程突然被stop终止了，那么就会导致写线程只设置了age的值却没来得及设置name的值，这样我们以时间戳值设置变量的话，就会发现name值比age小1。
+
+上述验证代码正验证了stop代码的危害，也是官方描述的内容，会突然导致线程终止，释放锁资源，导致同步失效，最终导致数据损坏。
+
+所以，我们程序中禁止stop方法！
+
+那么我们程序就是想要线程停止运行呢，该咋办？可以有两种方式，一个是自行实现程序自动退出的逻辑，例如定义一个标识位，当满足条件时即退出程序运行；另外可以通过线程间中断实现。
+
+3. **线程中断**
+* 中断概述
+
+回忆上一节stop方法内容，如果仔细思考，发现它不安全的根本原因就在于突然停止线程，好比如你在吃饭突然被人把碗筷扔了，你突然不能继续吃饭了，你不得发飙；但是如果换个方式，有人来告诉你说食堂因为有事要打扫卫生啥的，让你赶紧吃完，这个肯定要温柔点了。在线程中也有类似的方式，就是线程中断，通过中断通知线程停止运行，不过和你被通知不要吃饭但是你可以选择继续吃一会就不吃了还是立即就不吃了一样，线程在接收到中断请求后，也可以继续运行完当前程序指令内容后再停止，或者已经几乎执行完了可以直接停止。
+
+总计起来就是，中断可以请求线程结束运行，但是线程收到中断请求何时真正停止可以自行处理决定。
+
+中断是线程间的协作方式。因为中断时需要别的线程发起请求的，类似人之间通信交流。
+
 
 
 #### 3. 同步控制

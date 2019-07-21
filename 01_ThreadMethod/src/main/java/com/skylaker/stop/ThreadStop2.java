@@ -19,7 +19,7 @@ public class ThreadStop2 {
             writeThread.start();
 
             try {
-                Thread.sleep(50);
+                Thread.sleep(150);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -33,18 +33,19 @@ public class ThreadStop2 {
     static class ReadThread extends Thread {
         @Override
         public void run() {
-            synchronized (user){
-                while (true){
-                    if(user.getAge().intValue() != Integer.valueOf(user.getName()).intValue()){
+            while (true){
+                synchronized (user){
+                    if(user.getAge() != Integer.parseInt(user.getName())){
                         System.out.println("当前User的age和name不一致，age："
                                 + user.getAge()
                                 + ", name: "
                                 + user.getName());
                     }
-                    // 临时让出资源避免读线程一直持有锁对象，
-                    // 写线程无法操作，观察不出现象
-                    Thread.yield();
                 }
+
+                // 临时让出资源避免读线程一直持有锁对象，
+                // 写线程无法操作，观察不出现象
+                Thread.yield();
             }
         }
     }
@@ -55,25 +56,27 @@ public class ThreadStop2 {
     static class WriteThread extends Thread {
         @Override
         public void run() {
-            synchronized (user){
-                while (true){
-                    Integer value = Math.round(100);
+            while (true){
+                synchronized (user){
+                    int value = (int) (System.currentTimeMillis() / 1000);
                     user.setAge(value);
-                    user.setName(String.valueOf(value));
 
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    Thread.yield();
+
+                    user.setName(String.valueOf(value));
                 }
+
+                Thread.yield();
             }
         }
     }
 
     static class User {
-        private Integer age;
+        private int age;
 
         private String name;
 
@@ -83,11 +86,11 @@ public class ThreadStop2 {
             name = "1";
         }
 
-        public Integer getAge() {
+        public int getAge() {
             return age;
         }
 
-        public void setAge(Integer age) {
+        public void setAge(int age) {
             this.age = age;
         }
 
