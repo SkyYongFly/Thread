@@ -367,15 +367,23 @@ public class ThreadStop2 {
 中断是线程间的协作方式。因为中断时需要别的线程发起请求的，类似人之间通信交流。
 
 * 线程方法
+
 A. **public void Thread.interrupt()**
+
 中断线程：通知目标线程中断，设置中断标志位。这个中断标志位是干嘛的呢？其实就直接当做一个flag看待了，我们通知目标线程中断，但是目标线程具体停不停止、如何处理中断完全由目标线程决定，那么目标线程如何判断呢？就相当于if(true == flag)了，即通过判断中断标志位。
+
 B. **public boolean Thread.isInterrupted()**
+
 判断线程是否被中断：目标线程被通知中断后，可以通过该方法判断是否被中断
+
 C. **public static boolean Thread.interrupted()**
+
 判断是否被中断，并清除当前中断标志
 
 * 线程测试
+
 A. 只通知线程中断，但是线程不显式处理
+
 ```
 public static void main(String[] args) throws InterruptedException {
         testInterrupt();
@@ -410,6 +418,7 @@ public static void main(String[] args) throws InterruptedException {
 通知线程中断，但是线程并没有对中断进行处理，因此不会结束程序。
 
 B. 对中断进行判断处理
+
 ```
 /**
      * 子线程对中断通知进行响应
