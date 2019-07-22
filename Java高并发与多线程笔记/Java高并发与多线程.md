@@ -366,6 +366,130 @@ public class ThreadStop2 {
 
 中断是线程间的协作方式。因为中断时需要别的线程发起请求的，类似人之间通信交流。
 
+* 线程方法
+A. **public void Thread.interrupt()**
+中断线程：通知目标线程中断，设置中断标志位。这个中断标志位是干嘛的呢？其实就直接当做一个flag看待了，我们通知目标线程中断，但是目标线程具体停不停止、如何处理中断完全由目标线程决定，那么目标线程如何判断呢？就相当于if(true == flag)了，即通过判断中断标志位。
+B. **public boolean Thread.isInterrupted()**
+判断线程是否被中断：目标线程被通知中断后，可以通过该方法判断是否被中断
+C. **public static boolean Thread.interrupted()**
+判断是否被中断，并清除当前中断标志
+
+* 线程测试
+A. 只通知线程中断，但是线程不显式处理
+```
+public static void main(String[] args) throws InterruptedException {
+        testInterrupt();
+    }
+
+    /**
+     * 如果子线程不对中断通知进行处理，那么将不会退出处理逻辑
+     * @throws InterruptedException
+     */
+    public static void testInterrupt() throws InterruptedException {
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                while (true) {
+                    System.out.println("子线程正在运行：" + System.currentTimeMillis());
+                    Thread.yield();
+                }
+            }
+        };
+
+        thread.start();
+        Thread.sleep(2000);
+        // 通知子线程中断
+        thread.interrupt();
+    }
+```
+
+执行结果：
+
+![ca35bfda3797ee97f423e7f080754fbd](Java高并发与多线程.resources/E5D2A1E6-BBA7-41EF-BFFF-699B5E1748FC.png)
+
+通知线程中断，但是线程并没有对中断进行处理，因此不会结束程序。
+
+B. 对中断进行判断处理
+```
+/**
+     * 子线程对中断通知进行响应
+     * @throws InterruptedException
+     */
+    public static void testReolveInterrupt() throws InterruptedException {
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                while (true) {
+                    if(Thread.currentThread().isInterrupted()){
+                        System.out.println("子线程收到中断通知，准备退出！");
+                        break;
+                    }
+
+                    System.out.println("子线程正在运行：" + System.currentTimeMillis());
+                    Thread.yield();
+                }
+            }
+        };
+
+        thread.start();
+        Thread.sleep(200);
+        // 通知子线程中断
+        thread.interrupt();
+    }
+```
+
+执行结果:
+
+![d83e1ce86beeb9f7daf543abaac19304](Java高并发与多线程.resources/3232D5F5-6762-44FE-941D-A23C7274A577.png)
+
+子线程对中断标志位进行判断，如果产生了中断则结束。
+
+C.休眠中断处理
+```
+/**
+     * 休眠过程中中断
+     * @throws InterruptedException
+     */
+    public static void testSleepInterrupt() throws InterruptedException {
+        Thread thread = new Thread(){
+            @Override
+            public void run(){
+                while (true) {
+                    if (Thread.currentThread().isInterrupted()){
+                        System.out.println("子线程收到中断通知，准备退出！");
+                        break;
+                    }
+
+                    System.out.println("子线程正在运行：" + System.currentTimeMillis());
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        System.out.println("子线程休眠中断异常");
+                        // 异常中断标志位被清除，需要重新设置，让子线程处理退出，避免直接退出导致后续代码无法执行
+                        Thread.currentThread().interrupt();
+                    }
+
+                    System.out.println("休眠后逻辑内容：" + System.currentTimeMillis());
+                    Thread.yield();
+                }
+            }
+        };
+
+        thread.start();
+        Thread.sleep(300);
+        // 通知子线程中断
+        thread.interrupt();
+    }
+```
+
+执行结果：
+
+![8df258fa395e542056fb670dc5751635](Java高并发与多线程.resources/7F53C112-A55B-4F1A-8CFA-47A6E3440C29.png)
+
+子线程处理逻辑中存在sleep方法，线程在休眠期间如果被中断则会产生中断异常，且会清除中断标志位。但是产生中断异常后我们不应该直接退出线程，因为后续可能还会有其他处理逻辑，可以通过重新设置中断标志位，进行判断后处理。
+
+
 
 
 #### 3. 同步控制
