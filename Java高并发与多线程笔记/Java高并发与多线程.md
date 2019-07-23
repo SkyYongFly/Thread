@@ -383,7 +383,6 @@ C. **public static boolean Thread.interrupted()**
 * 线程测试
 
 A. 只通知线程中断，但是线程不显式处理
-
 ```
 public static void main(String[] args) throws InterruptedException {
         testInterrupt();
@@ -418,7 +417,6 @@ public static void main(String[] args) throws InterruptedException {
 通知线程中断，但是线程并没有对中断进行处理，因此不会结束程序。
 
 B. 对中断进行判断处理
-
 ```
 /**
      * 子线程对中断通知进行响应
@@ -498,6 +496,84 @@ C.休眠中断处理
 
 子线程处理逻辑中存在sleep方法，线程在休眠期间如果被中断则会产生中断异常，且会清除中断标志位。但是产生中断异常后我们不应该直接退出线程，因为后续可能还会有其他处理逻辑，可以通过重新设置中断标志位，进行判断后处理。
 
+2.4 **线程等待、唤醒**
+
+* 场景概述
+
+线程之间在某些情况下会需要相互协作，A线程处理某个逻辑时可能需要等待B线程处理完成后才能继续进行。举个生活的场景，例如你去海底捞吃火锅，但是人已经满了，这个时候你就需要等待，服务员通知你人满了，你便到等待区域吃点小吃慢慢等着；等有空桌时，服务员又通知你可以如坐点餐吃火锅了。这个过程中你相当于一个线程，而其他吃饭的顾客是其他线程。线程之间的通信采用 wait 和 notify 方法完成。
+
+* 协作方法
+A. public final void wait() throws InterruptedException
+
+该方法为object方法，即所有对象都具有该方法。当线程中的对象调用wait方法后当前所在线程便暂停当前程序处理逻辑，然后释放当前线程所持有的锁，进入调用wait方法对象的等待队列，这个等待队列其实是一个虚拟的概念，当期对象上面等待的线程都在这个队列中，这个过程可以用如下图示表达：
+
+![1d25265d6702cc7864d9010158a56ea4](Java高并发与多线程.resources/326FBBC9-94DF-4702-8D40-6C26376E770A.png)
+
+B. public final native void notify()
+
+该方法也是object定义的方法，同样意味所有的对象都拥有这个方法。当对象调用notify方法时候，当前所在线程会在执行完程序逻辑后释放掉当前的持有的锁，然后去当前对象的等待队列中随即唤醒一个线程，等待队列中的线程或竞争获取锁资源，获取到锁的线程会继续在原来暂停的地方继续运行。
+
+![51abd3fc551861e713946369f716fe4f](Java高并发与多线程.resources/940CE7E5-CE3B-4D75-9A4E-E76EF6448CDF.png)
+
+* 代码实例
+```
+package com.skylaker.wait;
+
+/**
+ * 多线程协作：wait notify
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/23 10:31 PM
+ */
+public class ThreadWaitNotify {
+    final static Object object = new Object();
+
+    public static void main(String[] args){
+        WaitThread waitThread = new WaitThread();
+        NotifyThread notifyThread = new NotifyThread();
+        waitThread.start();
+        notifyThread.start();
+    }
+
+    // 阻塞等待 wait
+    static class WaitThread extends Thread {
+        @Override
+        public void run() {
+            synchronized (object) {
+                System.out.println(System.currentTimeMillis() + " 等待线程处理逻辑 1 ");
+
+                try {
+                    // 当前锁对象锁住的线程进入阻塞等待，并释放锁
+                    object.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println(System.currentTimeMillis() + " 等待线程继续处理逻辑 2");
+            }
+        }
+    }
+
+    // 通知唤醒 notify
+    static class NotifyThread extends Thread {
+        @Override
+        public void run() {
+            synchronized (object) {
+                System.out.println(System.currentTimeMillis() + " 通知线程处理逻辑 1");
+
+                // 当前锁对象锁住的线程通知当前锁对象等待队列中的某个线程唤醒
+                object.notify();
+
+                System.out.println(System.currentTimeMillis() + " 通知线程处理逻辑 2");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
 
 
 
