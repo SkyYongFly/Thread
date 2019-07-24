@@ -126,6 +126,7 @@ public class ThreadNew {
 可以看到和方式一类似的结果，不过这里我们发现主线程的信息先打印出来了，如果多次执行其实可以发现有时子线程先打印信息，有时主线程先打印，这个正是因为主线程、子系统是两个相互独立的个体，主线程启动了子线程，相当于系统中有两个线程同时在运行，那么具体谁先执行完成是无法确定的，所以也就是谁先打印信息也就无法确定了。
 
 * 我们创建了线程吗？
+
 上面两种方式是创建线程的基本方式，但是其实说到底也是一种方式，因为Thread对象默认实现了Runnable接口：
 
 ![c04a0d044920f09cd021c1f14f833dfa](Java高并发与多线程.resources/49F02DCE-C88A-416F-96B8-C202938A25C5.png)
@@ -515,7 +516,7 @@ B. public final native void notify()
 
 不过还有个 notifyAll 方法，唤醒所有等待的线程。
 
-![51abd3fc551861e713946369f716fe4f](Java高并发与多线程.resources/940CE7E5-CE3B-4D75-9A4E-E76EF6448CDF.png)
+![b1b2b54817a96ec7b969d170449e92b1](Java高并发与多线程.resources/6A945927-5881-4AED-81A9-D4B4792BB224.png)
 
 * 代码实例
 ```
@@ -705,6 +706,222 @@ public class ThreadWaitNotify {
 
 可以看到两个线程在执行 wait 和 notify 时都报错了，这个说明要想执行 wait 和 notify 必须是同一个锁对象！其实仔细想想，如果不是用锁对象，那么也就无法控制线程之间同步，导致临界区资源问题。好比如上面你去吃火锅，没有服务员控制下顾客，大家随意抢桌子，估计就乱了~~~
 
+* wait和sleep的区别
+
+sleep可以让当前线程休眠一段时间，wait可以让当前锁线程阻塞等待一段时间，但是两者还是有区别的，一是wait可以被唤醒，但是sleep只能等休眠时间结束，如果休眠过程中发生中断，那么会导致中断异常；二是sleep休眠期间并不是释放当前锁资源，导致其它在当前锁对象上阻塞的线程一直在阻塞，而wait方法会导致当前锁上的线程暂停，释放掉持有的锁对象，进入等待队列，其他在阻塞的线程则抢占锁资源，抢占到锁的线程进入处理相关指令。
+
+2.5 **线程挂起和继续执行**
+
+* 方法概述
+
+A. public final void suspend()
+
+线程挂起方法，让当前线程挂起，但是不释放锁资源，那么就会导致其他在当前锁上等待的线程一直阻塞。
+
+B. public final void resume() 
+
+通知线程继续执行，suspend挂起的线程必须等到resume才能继续运行。
+
+* 方法问题
+
+我们在实际调用这两个方法的时候，发现其实已经被标注为舍弃方法，为啥呢？其实我们借鉴前面一些例子，就会发现挂起方法的一个大问题，就是在挂起期间不会释放当前锁对象，而suspend的线程必须被resume唤醒，试想如果出现差错，那么就会一直处于挂起状态，就一直持有锁对象，则导致其他等待的所有线程都得不到执行，严重影响系统功能。我们可以通过例子来测试下：
+
+```
+package com.skylaker.suspend;
+
+/**
+ * 线程挂起suspend和继续执行resume
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/24 11:27 PM
+ */
+public class ThreadSuspendResume {
+    private static Object object = new Object();
+
+    public static void main(String[] args) throws InterruptedException {
+        MyThread myThread1 = new MyThread("线程1");
+        MyThread myThread2 = new MyThread("线程2");
+
+        myThread1.start();
+        myThread2.start();
+
+        // 线程1继续执行
+        System.out.println("通知线程1继续执行");
+        myThread1.resume();
+        // 线程2继续执行
+        System.out.println("通知线程2继续执行");
+        myThread2.resume();
+
+        myThread1.join();
+        myThread2.join();
+    }
+
+    static class MyThread extends Thread {
+        private String threadName;
+
+        MyThread(String threadName){
+            this.threadName = threadName;
+        }
+
+        @Override
+        public void run() {
+            synchronized (object){
+                System.out.println("线程：" + threadName + " 开始运行");
+                // 线程挂起
+                Thread.currentThread().suspend();
+                System.out.println("线程：" + threadName + " 结束运行");
+
+            }
+        }
+    }
+}
+```
+
+运行正常结果：
+
+![bbbefc46e159c8dad5ec92ba3df552c6](Java高并发与多线程.resources/94CFD87F-B592-40D4-9588-03325E3E7B02.png)
+
+非正常运行结果：
+
+![37be43eb48e3143ee783a7c75833f35d](Java高并发与多线程.resources/205911D6-0F1E-4742-8062-5872E7ED860E.png)
+
+上面显示了两种不同的执行结果，一种正常的，两个线程都能正常结束运行，而另外一种则是非正常情况，线程2一直在挂起中，不能结束，这是因为线程2的通知唤醒resume唤醒时机在挂起suspend之前，这样线程2在挂起之后就一直等不到唤醒，那么也就一直等待了，造成结束不了。
+
+其实这里挂起和唤醒继续运行和上一篇的wait、notify类似，但是wait、nofity会释放当前锁对象，一定程度上保证了整体程序的正常执行性，所以我们可以用wait、notify方法实现suspend、resume功能。
+
+2.6 **等待线程结束和和谦让**
+
+* 等待线程运行结束：join方法
+
+和实际生活中一样，线程之间也存在着各种各样的协作，人在协作某些事情的时候，例如测试人员要等开发人员开发完成相关功能之后才能进行测试，而线程也有类似方法：join
+
+public final void join() throws InterruptedException
+
+调用join方法后，调用端线程会等到被调用线程执行结束，例如测试代码：
+
+``` 
+package com.skylaker.join;
+
+/**
+ * 等待线程结束运行 join
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/25 12:42 AM
+ */
+public class ThreadJoin {
+    private static volatile int sum = 0;
+
+    public static void main(String[] args){
+        MyThread myThread = new MyThread();
+        myThread.start();
+
+        System.out.println("计算和为：" + sum);
+    }
+
+    static class MyThread extends Thread {
+        @Override
+        public void run() {
+            for (int i = 0; i < 100; i++){
+                sum += i;
+            }
+        }
+    }
+}
+``` 
+
+执行结果：
+
+![179457a9bcb2e49b73ca213632b06e11](Java高并发与多线程.resources/FF82C54F-3932-4644-8B37-C3ACC845DE1D.png)
+
+当然如果子线程运行足够快，有时会得到正确的最终结果 4950，不过很多情况下是小于4950的，就是因为主线程并未等到子线程执行完就直接打印结果了，但是如果主线程主动等到子线程执行完成就能始终得到最终的值。
+
+```
+package com.skylaker.join;
+
+/**
+ * 等待线程结束运行 join
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/25 12:42 AM
+ */
+public class ThreadJoin {
+    private static volatile int sum = 0;
+
+    public static void main(String[] args){
+        MyThread myThread = new MyThread();
+        myThread.start();
+
+        try {
+            myThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("计算和为：" + sum);
+
+    }
+
+    static class MyThread extends Thread {
+        @Override
+        public void run() {
+            for (int i = 0; i < 100; i++){
+                sum += i;
+            }
+        }
+    }
+}
+```
+
+执行结果：
+
+![cb7af0b8a898e3bded824898ff82f22c](Java高并发与多线程.resources/6A0A6729-C64A-4526-A5CC-1030B1EDA6DF.png)
+
+* 线程谦让：yield
+
+调用的线程会让出占用的CPU资源，让其他线程先执行，但是当前线程让出之后并不是阻塞等待，而是又直接加入资源竞争，所以让出资源后可能还是当前线程继续运行。
+
+```
+package com.skylaker.yield;
+
+/**
+ * 线程谦让 yield
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/25 12:56 AM
+ */
+public class ThreadYield {
+    public static void main(String[] args) throws InterruptedException {
+        MyThread1 myThread1 = new MyThread1();
+        MyThread2 myThread2 = new MyThread2();
+        myThread1.setPriority(Thread.MIN_PRIORITY);
+        myThread2.setPriority(Thread.MAX_PRIORITY);
+
+        myThread1.start();
+        myThread2.start();
+    }
+
+    static class MyThread1 extends Thread {
+        @Override
+        public void run() {
+            System.out.println("线程1：开始运行");
+            Thread.currentThread().yield();
+            System.out.println("线程1：结束运行");
+        }
+    }
+
+    static class MyThread2 extends Thread {
+        @Override
+        public void run() {
+            System.out.println("线程2：运行");
+        }
+    }
+}
+```
+
+运行结果：
+
+![9f2f80923538941e3f2737a1b8c2d5f3](Java高并发与多线程.resources/DDFF00A3-647D-47AC-BD5F-B11E7DB6B05B.png)
+
+可以看到线程1让出后线程2优先运行。
 
 
 #### 3. 同步控制
