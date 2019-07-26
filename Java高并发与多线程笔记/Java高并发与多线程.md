@@ -877,7 +877,7 @@ public class ThreadJoin {
 
 * 线程谦让：yield
 
-调用的线程会让出占用的CPU资源，让其他线程先执行，但是当前线程让出之后并不是阻塞等待，而是又直接加入资源竞争，所以让出资源后可能还是当前线程继续运行。
+调用的线程会让出占用的CPU资源，让其他线程先执行，但是当前线程让出之后并不是阻塞等待，而是又直接加入资源竞争，所以让出资源后可能还是当前线程继续运行。需要注意线程谦让并不会释放当前锁资源。
 
 ```
 package com.skylaker.yield;
@@ -923,10 +923,124 @@ public class ThreadYield {
 
 可以看到线程1让出后线程2优先运行。
 
+2.7 **线程组 ThreadGroup**
 
-#### 3. 同步控制
+* 线程组很好理解，将线程分组，不同的线程放入不同的线程组，例如苹果放入苹果篮，梨子放入梨子篮。
 
-#### 4. 线程池
+* 设置方法
 
-#### 5. 并发容器
+直接在 new Thread（）的时候传入当前线程要入驻的线程组
+
+```
+package com.skylaker.group;
+
+/**
+ * 线程组
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/26 9:57 PM
+ */
+public class ThreadGroupCls {
+
+    public static void main(String[] args) throws InterruptedException {
+        // 定义线程组
+        ThreadGroup threadGroup = new ThreadGroup("用户线程组");
+        // 创建线程，传入线程组、定义线程信息
+        Thread t1 = new Thread(threadGroup, new MyThread(), "获取用户信息线程");
+        Thread t2 = new Thread(threadGroup, new MyThread(), "设置用户名称线程");
+
+        t1.start();
+        t2.start();
+
+        Thread.sleep(1000);
+        System.out.println("线程组活动线程数量："+ threadGroup.activeCount());
+
+        System.out.println("\n线程组信息：\n");
+        threadGroup.list();
+        System.out.println("\n");
+    }
+
+    static class MyThread extends Thread {
+        @Override
+        public void run() {
+            String groupAndName = "线程组名：" + Thread.currentThread().getThreadGroup().getName()
+                    + "； 线程名称：" + Thread.currentThread().getName();
+
+            while (true) {
+                System.out.println(groupAndName);
+
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+
+执行结果：
+
+![5ec92d1df46aa4c2c9a53ffa9fea5b8a](Java高并发与多线程.resources/B259E137-EE1C-4359-B136-8E38B0BBFE05.png)
+
+这里我们设置了两个线程，放入同一个线程组中，并可以通过线程组对象的 `public int activeCount()` 方法获取当前线程组中活动线程数量，当然这个值每次不一定相同。线程组 `public void list()` 打印当前线程组信息。
+
+2.8 **守护线程**
+
+* 有时候程序在运行时候需要有些后台默默运行的线程处理一些事情，例如JVM中的垃圾收集器负责垃圾回收。我们可以通过`public final void setDaemon(boolean on)`设置某个线程为守护线程：
+
+```
+package com.skylaker.daemon;
+
+/**
+ * 守护线程
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/26 10:14 PM
+ */
+public class ThreadDaemon {
+    public static void main(String[] args) throws InterruptedException {
+        MyThread myThread = new MyThread();
+        // 设置线程为守护线程
+        myThread.setDaemon(true);
+
+        // 主线程开始
+        System.out.println("主线程正在运行");
+        myThread.start();
+
+        Thread.sleep(5000);
+        // 主线程结束
+        System.out.println("主线程结束运行");
+    }
+
+    static class MyThread extends Thread {
+        @Override
+        public void run() {
+            while (true) {
+                System.out.println("我是守护线程，正在运行~~~");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+
+运行结果：
+
+![23c296b531d1f25eb2b410b19dd84377](Java高并发与多线程.resources/7E96F88C-35E7-43D4-B5AC-86C8507158A7.png)
+
+需要注意 setDaemon 方法需要在线程启动前设置，不然无法将线程设置为守护线程。另外从代码执行结果来看，主线程执行结束后守护线程也结束了，这是为啥？所谓皮之不存毛将焉附，守护线程是为了其他主线程存在的，如果主要的线程对象代码执行完了，那么意味着程序结束，那么自然守护线程也就没有存在的必要了，所以也就随着其他非守护线程的都执行完毕而消失。
+
+#### 3. JMM内存模型
+
+#### 4. 同步控制
+
+#### 5. 线程池
+
+#### 6. 并发容器
 
