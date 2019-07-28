@@ -1271,7 +1271,7 @@ public class ThreadPriority2 {
 3.2.2 **Java线程池结构**
 
 我们先来看下Java线程池相关组件基本结构关系：
-![0525b0a0decadd26b275c1e86e71f4ae.jpeg](evernotecid://06DFA41B-A12A-45C2-81B9-2BC46244504C/appyinxiangcom/19217616/ENNote/p234?hash=0525b0a0decadd26b275c1e86e71f4ae)
+![0525b0a0decadd26b275c1e86e71f4ae](Java高并发与多线程.resources/D4EE1BA1-A8BE-4ADB-B640-C7FEFCD7DF8D.jpg)
 
 线程池通过Executor及其相关实现类定义，Executor作为顶层接口定义了线程池基本行为，即执行分配的任务：接收Runnable接口实现对象，完成其中指定的任务指令。
 
@@ -1479,6 +1479,200 @@ public static void main(String[] args) throws InterruptedException {
 D. 周期性、定时性执行任务的线程池
 
 `public static ScheduledExecutorService newSingleThreadScheduledExecutor()`
+
+创建一个可以在指定延时时间执行，或者间断执行——每隔多长时间执行一次的线程池。
+
+示例：创建一个指定延时时间后执行的线程池
+
+```
+package com.skylaker.pool;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 单个大小、定时性的线程池
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/28 4:11 PM
+ */
+public class SingleScheduledThreadPool {
+    public static void main(String[] args){
+        // 创建一个大小为1、可周期性或某个延时过后执行的的线程池
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        System.out.println("提交任务时间：" + System.currentTimeMillis());
+        executorService.schedule(task, 5, TimeUnit.SECONDS);
+    }
+
+    static class MyThread implements Runnable {
+        public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+![c9284e831a3e1fac9341732f42f920ac](Java高并发与多线程.resources/577FCC45-5503-449D-880B-E555A29C5B33.png)
+
+在这里我们创建了一个延时5秒执行的线程池，可以通过执行结果看到我们在提交了任务后5秒才执行了任务。
+
+该定时、周期性线程池可以创建多种形式的定时策略，主要通过返回的对象ScheduledExecutorService实现的，主要方式有：
+
+a.
+
+```
+public ScheduledFuture<?> schedule(Runnable command,
+                                       long delay, TimeUnit unit)
+```
+
+指定延时时间之后执行任务。
+
+b.
+
+
+```
+public ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
+                                                  long initialDelay,
+                                                  long period,
+                                                  TimeUnit unit);
+```
+scheduleAtFixedRate以固定频率进行任务调度，其以每一个任务开始时间为调度标准，即上一个任务开始时间之后经过period长时间进行下一个任务。
+
+![f72b8982d22b89c0f7241eedf3fe8e6c](Java高并发与多线程.resources/E8C7B305-9140-4AC6-AD81-75B2CD0AEF2F.png)
+
+代码示例：
+
+```
+package com.skylaker.pool;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 单个大小、定时性的线程池
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/28 4:11 PM
+ */
+public class SingleScheduledThreadPool {
+    public static void main(String[] args){
+        // 创建一个大小为1、可周期性或某个延时过后执行的的线程池
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        System.out.println("提交任务时间：" + System.currentTimeMillis());
+        executorService.scheduleAtFixedRate(task, 1, 2, TimeUnit.SECONDS);
+    }
+
+    static class MyThread implements Runnable {
+        public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+执行结果：
+
+![5e3a888bb342f78fb7e178b80cfe0fe1](Java高并发与多线程.resources/8B20AA58-E875-4D26-9531-B83A1F6AEB17.png)
+
+可以看到线程在提交任务后指定延时1秒后执行任务调度，然后每两秒执行一次任务，因为设置的间隔时间为2秒。但是我们考虑一种情况，这里每个任务的执行耗时是短于任务调度周期的，所以下一个任务开始时候距离上一个任务开始时候正好2秒，但是如果任务执行耗时大于调度周期呢？我们稍微修改下任务执行耗时：
+
+```
+public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+```
+
+执行结果：
+
+![c7251552a5c5b359ccd1ae6d1e9b06f0](Java高并发与多线程.resources/340A9C3B-45F8-4223-B7F1-1660A726239E.png)
+
+发现现在的调度周期是任务执行的耗时，即如果任务执行耗时超过下一个任务应该执行的间隔耗时，那么下一个任务直接以上一个任务的结束时间作为开始时间，即上一个任务结束下一个任务继续。
+
+c.
+
+```
+public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command,
+                                                     long initialDelay,
+                                                     long delay,
+                                                     TimeUnit unit);
+```
+
+scheduleWithFixedDelay方法也是固定频率执行任务调度，但是和上一个scheduleAtFixedRate不同的是，它是以上一个任务结束时间作为调度标准，即上一个任务执行完了之后再经过delay长时间执行下一个任务。
+
+![28ba3bfc77f09639860ace6c590b7e45](Java高并发与多线程.resources/5B39660C-6D31-41EB-B5F9-C59CD11B5523.png)
+
+```
+package com.skylaker.pool;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 单个大小、定时性的线程池
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/28 4:11 PM
+ */
+public class SingleScheduledThreadPool {
+    public static void main(String[] args){
+        // 创建一个大小为1、可周期性或某个延时过后执行的的线程池
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        System.out.println("提交任务时间：" + System.currentTimeMillis());
+        executorService.scheduleWithFixedDelay(task, 1, 2, TimeUnit.SECONDS);
+    }
+
+    static class MyThread implements Runnable {
+        public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+执行结果：
+
+![40d9bf6d6be7bcbf2f64210548efced3](Java高并发与多线程.resources/0513E803-C2F0-42F9-AE4E-380287B63229.png)
+
+可以看到任务执行周期3秒，因为单个任务耗时1秒，再加上下个任务等待耗时2秒。
 
 
 
