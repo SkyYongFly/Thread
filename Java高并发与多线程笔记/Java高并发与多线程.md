@@ -1674,6 +1674,42 @@ public class SingleScheduledThreadPool {
 
 可以看到任务执行周期3秒，因为单个任务耗时1秒，再加上下个任务等待耗时2秒。
 
+3.2.4 **线程池内部实现**
+
+上面我们创建了几种不同形式的线程池，其实如果通过查看源码，我们会发现这几种线程池只不过都是ThreadPoolExecutor的封装，通过设置不停参数，创建不同特点的线程池，例如单个数量线程池，其实就是设置线程数量为1——核心线程数、最大线程数都是1的线程池：
+
+![0721dcf4db057357d9421dad24c8278d](Java高并发与多线程.resources/EEB93FB1-96E9-4361-9611-DA41F22B30F0.png)
+
+A. 相关参数
+
+我们看下ThreadPoolExecutor具体构造：
+
+```
+public ThreadPoolExecutor(int corePoolSize,
+                              int maximumPoolSize,
+                              long keepAliveTime,
+                              TimeUnit unit,
+                              BlockingQueue<Runnable> workQueue,
+                              ThreadFactory threadFactory,
+                              RejectedExecutionHandler handler)
+```
+
+* corePoolSize：指定线程池核心线程数量，一般情况下线程池需要维持该数量的线程，以使线程得以复用；
+
+* maximumPoolSize：指定最大线程数量，有些情况下，如果任务数量很多，核心线程数量已经无法满足任务执行，并且等待队列也已经满了，就会额外创建线程，但是最大线程数量不能超过该参数最大值。
+
+* keepAliveTime：空闲线程存活时间，即在核心线程数量之外多余创建的线程在执行完任务后，就  变成空闲状态，那么需要回收，该参数就是定义空闲时间多长之后回收；
+
+* unit ：keepAliveTime的单位，可以设置时分秒等；
+
+* workQueue：等待队列，任务数量超过核心线程调度，暂时无法执行，那么任务就需要放入等待队列中进行等待。这个好比去吃饭但是人满了，就需要坐外面等一等。
+
+* threadFactory：线程工厂，用于创建线程池中线程；
+
+* handler ：任务拒绝策略，当任务超出核心线程调度能力，会将任务放入等待队列，如果队列也已经满了，那么就临时创建新的线程执行任务，如果整体线程数量达到最大线程数量，那么就不能接收新的任务了，就需要拒绝任务，而拒绝任务有不同的策略，该参数即设置拒绝策略。
+
+B. 核心参数
+
 
 
 ##### 3.3 **Fork/Join**
