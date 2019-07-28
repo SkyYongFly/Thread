@@ -20,6 +20,7 @@ public class SingleScheduledThreadPool {
         Thread task = new Thread(new MyThread());
         // 提交任务到线程池
         executorService.scheduleWithFixedDelay(task, 2, 5, TimeUnit.SECONDS);
+
     }
 
     static class MyThread implements Runnable {
