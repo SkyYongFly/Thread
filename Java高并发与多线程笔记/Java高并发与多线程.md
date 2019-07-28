@@ -1250,12 +1250,247 @@ public class ThreadPriority2 {
     public final static int MAX_PRIORITY = 10;
 ```
 
+#### 3. 任务分工
 
-#### 3. JMM内存模型
+##### 3.1 **分工概述**
 
-#### 4. 同步控制
+在现实世界中，很多事情都是很多人一起协作完成的，例如我们每天上班整个项目组在做一个软件项目，每个人承担着不同的任务。线程之间同样也存在着这样的场景，例如要完成很多任务的时候可以开启多个线程去完成相应的功能，提高任务执行效率、缩短执行时间，这也恰恰是我们多线程的存在的核心价值。
 
-#### 5. 线程池
+##### 3.2 **Executor与线程池**
 
-#### 6. 并发容器
+3.2.1 **线程池概述**
+
+当我们需要多线程处理程序任务时，我们可以通过基本的new Thread方法创建多个线程，然后启动运行分配任务处理，处理完成关闭线程。但是这样的方式存在着一个问题，线程的创建与销毁需要系统调度处理，另外线程本身也是需要占用一定的系统资源的，在实际环境中我们可能需要频繁且大量的生成线程，那么这种方式就会严重消耗系统资源，拖垮系统，所以我们就需要一种方式去解决这种问题。
+
+好比如一个商店需要服务员服务顾客，不能来一个顾客就雇佣一个服务员，然后顾客走了辞退，而是雇佣一定数量的服务员，有顾客来了对其帮助，如果顾客很多的话，那么有些顾客就需要进行一定的等待；如果没有顾客的话那么服务员就可以休息休息。
+
+这其实就是要用池化技术。同样的道理我们在做其他场景编程时同样遇到，例如数据库连接池，为了避免频繁创建关闭数据库连接而创建一些固定的连接放到一个连接池中，这样当有连接需要时从中选取一个，没用的话池中连接保持存活，处于空闲状态。
+
+线程处理同样用池化技术来解决这种多线程需求。
+
+3.2.2 **Java线程池结构**
+
+我们先来看下Java线程池相关组件基本结构关系：
+![0525b0a0decadd26b275c1e86e71f4ae.jpeg](evernotecid://06DFA41B-A12A-45C2-81B9-2BC46244504C/appyinxiangcom/19217616/ENNote/p234?hash=0525b0a0decadd26b275c1e86e71f4ae)
+
+线程池通过Executor及其相关实现类定义，Executor作为顶层接口定义了线程池基本行为，即执行分配的任务：接收Runnable接口实现对象，完成其中指定的任务指令。
+
+![c08985a907f59661fe7f00f3d7d15ef5](Java高并发与多线程.resources/E51C0910-6802-4D7E-818F-FC71285EE8FB.png)
+
+ExecutorService定义了一些线程池基本的行为方法，例如关闭线程池、提交任务等。
+
+![24b1d60ba226829a5d7cbc1f3c39464d](Java高并发与多线程.resources/2B6CDAB9-C325-4C21-B8FF-2EB5778B6B83.png)
+
+核心组件是ThreadPoolExecutor，由该组件创建实际的线程池，例如定义线程池大小、线程创建工厂、任务拒绝策略等。
+
+![c39c1bb36b96346e867a137e2632f24b](Java高并发与多线程.resources/2CCC721C-B82D-4EC0-AAC9-069E48383154.png)
+
+
+Executors是一个线程工具类，它可以创建不同类型的线程池，但是本质上其实都是通过ThreadPoolExecutor实现的。
+
+3.2.3 **线程池种类**
+
+通过Exexutors我们可以直接定义几种不同类型的线程池：
+
+A. 固定大小的线程池
+
+`public static ExecutorService newFixedThreadPool(int nThreads)`
+
+创建固定大小的线程池，线程池中的线程数量固定不变，当有新任务来的时候，若有空闲线程，则执行；若没有空闲线程，则任务放到线程池等待队列中，等有空闲线程时候再处理。
+
+代码示例：
+
+```
+package com.skylaker.pool;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * 固定大小的线程池
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/28 4:11 PM
+ */
+public class FixedThreadPool {
+    public static void main(String[] args){
+        // 创建一个大小为5的线程池
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        for(int i = 0; i < 10; i++){
+            executorService.submit(task);
+        }
+        // 关闭线程池
+        executorService.shutdown();
+    }
+
+    static class MyThread implements Runnable {
+        public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+运行结果：
+
+![d4f7b11969c6b7c22e27fd62c1b4c8f0](Java高并发与多线程.resources/11BA8D8F-394F-4A4E-B100-69E486E15F89.png)
+
+这个我们定义了一个数量为5的线程池，即池中有5个线程，我们发送了10个任务，每个任务执行完都会休眠一秒，如果我们将10个任务给一个线程执行，那么就是顺序执行，最起码要10秒钟，但是发送给线程池只需要两秒钟左右。根据打印的线程ID，我们可以看到执行任务的确实有5个线程，他们几乎同时执行分配的任务，然后过了一秒钟处理剩下的等待的5个任务。
+
+B. 创建单个数量线程的线程池
+
+`public static ExecutorService newSingleThreadExecutor()`
+
+创建一个线程数量只有1的线程池，也就是线程池中只有一个线程在进行任务处理，如果有多余任务则进入到等待队列进行等待，等线程处理完任务，再依次按照任务先后顺序执行。这种线程池执行任务就是单个线程串行执行，所以效率低。
+
+```
+package com.skylaker.pool;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * 单个大小的线程池
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/28 4:11 PM
+ */
+public class SingleThreadPool {
+    public static void main(String[] args){
+        // 创建一个大小为1的固定线程池
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        for(int i = 0; i < 10; i++){
+            executorService.submit(task);
+        }
+        // 关闭线程池
+        executorService.shutdown();
+    }
+
+    static class MyThread implements Runnable {
+        public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+执行结果：
+
+![ef5519760a19b7cf3528e48e8c9ec02b](Java高并发与多线程.resources/1110A064-36DF-4E4C-9D50-5984ADDB67F9.png)
+
+可以看到只有一个线程在执行任务，而且按照任务的特点，每隔一秒执行一次。
+
+C. 动态大小的线程池
+
+`public static ExecutorService newCachedThreadPool()`
+
+这种线程池的大小是随着任务量多少而动态调整的，线程数量不固定。当有新任务则优先复用现有空闲线程，若没有则创建新的线程处理，处理完成线程返回线程池进行复用。
+
+```
+package com.skylaker.pool;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * 动态大小的线程池
+ *
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/7/28 4:11 PM
+ */
+public class CachedThreadPool {
+    public static void main(String[] args){
+        // 创建一个大小可动态调整的线程池
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        for(int i = 0; i < 10; i++){
+            executorService.submit(task);
+        }
+        // 关闭线程池
+        executorService.shutdown();
+    }
+
+    static class MyThread implements Runnable {
+        public void run() {
+            System.out.println("线程ID：" + Thread.currentThread().getId()
+                    + " ; 当前时间：" + System.currentTimeMillis());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+执行结果：
+
+![df68670d6f906b3abf0d1aaacb8c5461](Java高并发与多线程.resources/82BBE654-5621-40F5-99B0-20694B0FD93B.png)
+
+这里我们可以看到我们同时发送了10个任务，线程池就创建了10个线程进行处理，因为我们的任务是同时发送给线程池执行的，线程池在收到任务后发现没有空闲线程处理则创建新线程进行处理。如果我们的任务前后存在间隔呢？
+
+```
+public static void main(String[] args) throws InterruptedException {
+        // 创建一个大小可动态调整的线程池
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        // 定义线程任务
+        Thread task = new Thread(new MyThread());
+        // 提交任务到线程池
+        for(int i = 0; i < 10; i++){
+            executorService.submit(task);
+            // 每隔两秒提交一个任务
+            Thread.sleep(2000);
+        }
+        // 关闭线程池
+        executorService.shutdown();
+    }
+```
+
+![b1eaa05a949f0d14cf036f521bfcaef9](Java高并发与多线程.resources/04940AB7-5084-422B-B159-7128ED6EB034.png)
+
+这里我们依然还是提交10个任务，不过每个任务之间隔两秒发送给线程池，因为一个任务执行只需要差不多1秒左右，所以再下一个任务过来的时候上一个任务已经执行完成了，之前的线程也就处于空闲模式，等下一个任务过来的时候就可以复用这个线程了。
+
+但是我们思考一个问题，如果我们确实是同时发送很多任务呢？假设我们发送100个、1000个甚至更多呢？那么这种动态的线程池线程数量其实是会无限增长的，其后果会导致系统资源消耗，具有危险性。
+
+D. 周期性、定时性执行任务的线程池
+
+`public static ScheduledExecutorService newSingleThreadScheduledExecutor()`
+
+
+
+##### 3.3 **Fork/Join**
+
+##### 3.4 **Future**
+
+#### 4. 线程协作
+
+#### 5. JMM内存模型
+
+#### 6. 互斥处理
+
+#### 7. 并发容器
 

@@ -13,6 +13,7 @@
 
     <modules>
         <module>01_ThreadMethod</module>
+        <module>02_ThreadPool</module>
     </modules>
 
     <dependencies>
