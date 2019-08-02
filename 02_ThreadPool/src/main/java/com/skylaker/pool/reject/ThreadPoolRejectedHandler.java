@@ -1,5 +1,6 @@
 package com.skylaker.pool.reject;
 
+import java.util.Queue;
 import java.util.concurrent.*;
 
 /**
@@ -12,10 +13,11 @@ public class ThreadPoolRejectedHandler {
     public static void main(String[] args) {
         System.out.println("主线程ID：" + Thread.currentThread().getId());
 
-        ExecutorService es = getMyThreadPool5();
+        ExecutorService es = getMyThreadPool3();
         for(int i = 0; i < 20; i++){
             MyTask myTask = new MyTask(i);
-            es.submit(myTask);
+            es.execute(myTask);
+//            es.submit(myTask);
         }
     }
 
@@ -69,9 +71,21 @@ public class ThreadPoolRejectedHandler {
                 0L,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue(5),
-                new ThreadPoolExecutor.DiscardOldestPolicy()
-        );
+                new ThreadPoolExecutor.DiscardOldestPolicy(){
+                    @Override
+                    public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+                        BlockingQueue queue = e.getQueue();
+                        StringBuffer buffer = new StringBuffer(10);
+                        for(Object task : queue){
+                            buffer.append(((MyTask)task).getId()).append(",");
+                        }
 
+                        System.out.println("将要执行的任务ID：" + ((MyTask)r).getId() + "；当前队列：" + buffer.toString() +
+                                "；将被丢弃的任务ID：" + ((MyTask)e.getQueue().peek()).getId());
+                        super.rejectedExecution(r, e);
+                    }
+                }
+        );
     }
 
     /**
@@ -122,11 +136,15 @@ public class ThreadPoolRejectedHandler {
             this.id = id;
         }
 
+        public int getId(){
+            return id;
+        }
+
         public void run() {
             System.out.println("当前执行任务线程ID：" + Thread.currentThread().getId() + "  执行任务ID：" + id);
 
             try {
-                Thread.sleep(2000);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

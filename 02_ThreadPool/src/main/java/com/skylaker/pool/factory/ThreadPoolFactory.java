@@ -1,7 +1,5 @@
 package com.skylaker.pool.factory;
 
-import com.skylaker.pool.reject.ThreadPoolRejectedHandler;
-
 import java.util.concurrent.*;
 
 /**

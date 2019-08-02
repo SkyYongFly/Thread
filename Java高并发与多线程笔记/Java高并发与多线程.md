@@ -1849,6 +1849,114 @@ d. DiscardOldestPolicy 删除最老的任务，然后执行当前新提交的任
 
 可以看到先判断线程池是否关闭，如果正常，则将等待队列的头节点移除，即丢弃等待时间最久的任务，然后向线程池提交新的任务
 
+继承该策略看下实际执行过程：
+
+```
+public static void main(String[] args) {
+        System.out.println("主线程ID：" + Thread.currentThread().getId());
+
+        ExecutorService es = getMyThreadPool3();
+        for(int i = 0; i < 20; i++){
+            MyTask myTask = new MyTask(i);
+            es.execute(myTask);
+        }
+    }
+    
+ /**
+     * 核心线程数量 2；
+     * 最大线程数量：5；
+     * 线程空闲等待时间：0s;
+     * 等待队列：大小为5的链表队列；
+     * 拒绝策略：丢弃队列中最旧的任务以执行当前新提交的任务
+     */
+    static ExecutorService getMyThreadPool3() {
+        return new ThreadPoolExecutor(
+                2,
+                5,
+                0L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue(5),
+                new ThreadPoolExecutor.DiscardOldestPolicy(){
+                    @Override
+                    public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+                        BlockingQueue queue = e.getQueue();
+                        StringBuffer buffer = new StringBuffer(10);
+                        for(Object task : queue){
+                            buffer.append(((MyTask)task).getId()).append(",");
+                        }
+
+                        System.out.println("将要执行的任务ID：" + ((MyTask)r).getId() + "；当前队列：" + buffer.toString() +
+                                "；将被丢弃的任务ID：" + ((MyTask)e.getQueue().peek()).getId());
+                        super.rejectedExecution(r, e);
+                    }
+                }
+        );
+    }
+    
+
+    static class MyTask implements Runnable {
+        private int id;
+
+        MyTask(int id){
+            this.id = id;
+        }
+
+        public int getId(){
+            return id;
+        }
+
+        public void run() {
+            System.out.println("当前执行任务线程ID：" + Thread.currentThread().getId() + "  执行任务ID：" + id);
+
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+```
+
+打印结果：
+
+![ab8f0c25e86cc3341a9cdfed0e3cd54e](Java高并发与多线程.resources/874AB283-38CD-4C93-824F-5B8A81F19E20.png)
+
+在这里我们通过重写DiscardOldestPolicy拒绝策略，打印在拒绝的时候相关队列信息，观察该策略的方式，可以看到：一开始发送两个任务到线程池，核心线程数量设置 的2，所以有两个线程在执行任务，这个时候新来的任务2、3、4、5、6被放入了等待队列，这个时候又有新的任务过来，因为设置的最大线程数量为5，所以可以创建新的线程来执行任务7、8、9；这个时候又有新任务10过来，但是线程池已经达到负荷了，这个时候根据拒绝策略就要把等到队列中的最老任务清除掉，即队列头部的任务2，所以可以看到等待队列变成了3、4、5、6、10，后面11、12等任务来的时候同样执行相同的操作；直到没有新的任务过来，即任务19发送过后，等待对了中缓存的任务为15、16、17、18、19，这个时候线程空闲开始处理等待队列中的任务。
+
+注意这里我们提交任务的方式是execute，而不是submit，两者区别后面学了再说，哈哈~~~ 反正这里用submit执行会报错，因为submit方式提交的FutureTask无法转为我们定义的MyTask，而execute直接提交我们的MyTask，所以可以方便转换获取设置的任务ID信息。
+
+这里我们看下线程空闲后优先从队列取任务，我们设置任务执行时间很少，来观察现象：
+
+```
+static class MyTask implements Runnable {
+        private int id;
+
+        MyTask(int id){
+            this.id = id;
+        }
+
+        public int getId(){
+            return id;
+        }
+
+        public void run() {
+            System.out.println("当前执行任务线程ID：" + Thread.currentThread().getId() + "  执行任务ID：" + id);
+
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+```
+
+打印结果：
+
+![e19d2fe1236f66b39cd07b11114288be](Java高并发与多线程.resources/9ED31844-B5EB-46AA-A320-943331B93F0B.png)
+
+同样任务0、1发送到线程池执行，然后2、3、4、5、6进入等待队列，再然后任务7、8、9启动新线程执行，我们观察到“将被丢弃的任务ID：2”，但是上面的显示信息是线程执行了任务2（这里忽略前后打印顺序，因为线程间打印也是竞态抢占资源的，和实际执行顺序可能不同），这是因为我们要进行拒绝策略的时候，正在遍历等待队列，但是因为单个任务执行很快，所以已经空闲的线程又立即从等待队列中获取队列首的任务进行执行，也就是任务2，其实从这里就看出线程优先从队列中取任务，因为没有去优先执行新来的任务10。可能会有一个疑问，任务5为啥没任何输出，这个我们这里用打印的方式去监测线程执行，其实是有延时的，本来队列是任务2、3、4、5、6，这个时候线程又拿走了2、3、4任务执行，任务5要被舍弃，正准备遍历队列要打印出来“将被丢弃的任务ID：5”，但是这个时候新来的任务唰唰来了，抢占了队列，这个时候遍历队列就是新的任务队列6、10、11、12、13了。
+
 e. DiscardPolicy 静默拒绝
 
 从源代码可以看出这中策略拒绝其实不做任何事情，只是默默的将任务拒绝
