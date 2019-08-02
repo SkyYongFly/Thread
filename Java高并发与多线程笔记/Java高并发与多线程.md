@@ -1889,6 +1889,105 @@ f. 自定义拒绝策略
 
 可以看到10个任务被执行，而10个任务被拒绝，因为线程池最大负载能力就是10 （最大线程数量 5 + 等待队列大小 5）
 
+* 线程创建工厂
+
+a. 线程工厂默认实现
+
+我们需要线程池执行任务的时候直接把Runnable接口定义的任务提交给线程池就行，在之前我们没用线程池的时候要运行任务需要自己启动线程去运行我们的任务，那么线程池中的线程哪来的呢？其实肯定也是创建来的，线程池内部通过ThreadFactory线程工厂来创建线程池，。在上一节中我们没有显式的指定ThreadFactory参数，其实线程池内容定义了其实例，我们可以看下：
+
+![53a6740f2c32206aa33346fc5d796b2d](Java高并发与多线程.resources/57B0C6BF-652D-4C33-AF61-15368F97A266.png)
+
+可以看到调用了其它重载构造器，只不过加入默认线程工厂的实现：Executors.defaultThreadFactory()，通过线程工具类实现的默认ThreadFactory，我们进去看下具体实现：
+
+![dcc4881354edaaa0a4d46640924013ee](Java高并发与多线程.resources/CBD817CF-4671-47ED-819D-B6D95E7A01FC.png)
+
+继续跟踪：
+
+![d4167a10ab95eba1cd8f7c7973020e92](Java高并发与多线程.resources/CB4FFFEB-5E3F-4DD1-A1C0-020748D1DBFA.png)
+
+在这里我们可以默认线程池定义线程工厂及如何创建线程逻辑：定义了线程池数量、线程组、线程数量、线程名称前缀等变量；在构造器中获取线程组（先获取系统级的SecurityManager对应的线程组，如果没有则用当前创建线程池对象所在线程的线程组，例如如果我们在主线程中定义了线程池，那么这里就会用主线程的线程组）；定义线程名称前缀 ”pool-" +线程池数量 + “-thread-“；然后在新建线程的时候，通过new Thread方法创建线程，并设置线程为非守护线程（意味着线程池在执行完任务后线程池不会退出），设置线程优先级为正常的优先级。
+
+对于刚才提到的线程组问题，我们可以测试下：
+
+```
+public static void main(String[] args) {
+        MyTask task = new MyTask();
+        System.out.println("主线程组：" + Thread.currentThread().getThreadGroup().getName());
+
+        ExecutorService es = getThreadPool2();
+        for(int i = 0; i < 10; i++){
+            es.submit(task);
+        }
+    }
+    
+static ExecutorService getThreadPool2(){
+        return new ThreadPoolExecutor(
+                // 核心大小：1 ；
+                1,
+                // 最大大小 2；
+                2,
+                // 空闲时间：0s
+                0, TimeUnit.SECONDS,
+                // 有界队列
+                new ArrayBlockingQueue<Runnable>(2),
+                // 静默拒绝策略
+                new ThreadPoolExecutor.DiscardPolicy()
+        );
+    }
+
+    static class MyTask implements Runnable {
+        public void run() {
+            System.out.println("当前执行任务线程ID：" + Thread.currentThread().getId());
+            System.out.println("当前执行任务线程组：" + Thread.currentThread().getThreadGroup().getName());
+
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+```
+
+执行结果：
+
+![d6d1e228c1cfa11f0afff64c216c3b71](Java高并发与多线程.resources/50B90485-71DE-4BC2-AB6E-767D3E7E1815.png)
+
+可以看到打印出的线程池中的线程所在线程组和当前主线程所在线程组是同一个：main
+
+b. 自定义线程工厂
+
+```
+static ExecutorService getThreadPool1(){
+        return new ThreadPoolExecutor(
+                // 核心大小：1 ；
+                1,
+                // 最大大小 2；
+                2,
+                // 空闲时间：0s
+                0, TimeUnit.SECONDS,
+                // 有界队列
+                new ArrayBlockingQueue<Runnable>(2),
+                // 自定义线程创建工厂
+                new ThreadFactory() {
+                    public Thread newThread(Runnable r) {
+                        Thread thread = new Thread(r);
+                        System.out.println("创建线程对象：" + thread);
+                        return thread;
+                    }
+                },
+                // 静默拒绝策略
+                new ThreadPoolExecutor.DiscardPolicy()
+        );
+    }
+```
+
+执行结果：
+
+![65bffb64d8d8172468bd4d43cda862c0](Java高并发与多线程.resources/0DF996C6-3DFC-4423-8781-C5E95767C326.png)
+
+可以看到线程池执行任务时按照设置打印出了线程对象信息，同时发现线程池线程组也是main，这是因为我们定义的线程池就是在主线程中定义的啊，所以默认和主线程一致了。
+
 
 
 
