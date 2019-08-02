@@ -1741,6 +1741,153 @@ d. PriorityBlockingQueue 优先任务队列
 无界队列，可根据任务优先级安排任务执行。
 
 
+* 拒绝策略
+
+如同我们去饭店吃放一样，店里人满了的话，我们可以在外面等待区进行等待，但是如果等待人实在太多了，店完全应付不过来，这个时候服务员可能就对等待的顾客说：不好意思小店人太多要不各位到其他家店体验体验？
+
+同样我们线程池在执行任务的时候，如果任务太多，我们可以采取等待队列进行多余任务的缓存，但是等待等待队列在一定程度上是有一定负载极限的，例如有界等待队列，即使对于像LinkedBlockingQueue这样的无界队列，在实际使用过程中为了避免系统性能消耗一般都需要设置一定的极限容量。所以对于过多的任务，在达到系统负荷水平上时，即等待队列已满、线程池线程数量达到最大线程数量且无空闲，那么就会采取一定的拒绝策略，以拒绝多余的任务。
+
+a. 拒绝策略接口定义
+
+拒绝策略有几种，都是`RejectedExecutionHandler`接口的实现，该接口定义了线程池如何执行拒绝策略：`void rejectedExecution(Runnable r, ThreadPoolExecutor executor);`，一共两个参数，一个是当前新提交的任务，一个是当前线程池对象。
+
+b. AbortPolicy 策略
+
+直接抛出异常的方式拒绝多余任务，同时系统不能正常工作
+
+```
+public static void main(String[] args) {
+        System.out.println("主线程ID：" + Thread.currentThread().getId());
+
+        ExecutorService es = getMyThreadPool1();
+        for(int i = 0; i < 20; i++){
+            MyTask myTask = new MyTask(i);
+            es.submit(myTask);
+        }
+    }
+    
+/**
+     * 核心线程数量 2；
+     * 最大线程数量：5；
+     * 线程空闲等待时间：0s;
+     * 等待队列：大小为5的链表队列；
+     * 拒绝策略：直接拒绝
+     */
+    static ExecutorService getMyThreadPool1() {
+        return new ThreadPoolExecutor(
+                2,
+                5,
+                0L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue(5),
+                new ThreadPoolExecutor.AbortPolicy());
+
+    }
+    
+ static class MyTask implements Runnable {
+        private int id;
+
+        MyTask(int id){
+            this.id = id;
+        }
+
+        public void run() {
+            System.out.println("当前执行任务线程ID：" + Thread.currentThread().getId() + "  执行任务ID：" + id);
+
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+```
+
+执行结果：
+
+![a2d0ca951db46821323aff9cd941f939](Java高并发与多线程.resources/677CF457-AD10-4470-9415-D0F366D1C134.png)
+
+可以看到在超出线程池负荷能力后直接抛出异常，异常信息提示线程池拒绝任务，且显示当前线程池信息，例如线程池大小、活动线程、等待队列大小：
+
+![6f07e55b0724db05fc1899a9ffb1d8c2](Java高并发与多线程.resources/3A84BAB5-60B4-4474-9328-0DC7980EF8C9.png)
+
+c. CallerRunsPolicy 调用者执行拒绝的任务
+
+例如当前主线程将任务提交给线程池执行，但是线程池拒绝了，那么这种拒绝模式的话会让主线程去执行拒绝的任务
+
+```
+/**
+     * 核心线程数量 2；
+     * 最大线程数量：5；
+     * 线程空闲等待时间：0s;
+     * 等待队列：大小为5的链表队列；
+     * 拒绝策略：调用者运行丢弃的任务
+     */
+    static ExecutorService getMyThreadPool2() {
+        return new ThreadPoolExecutor(
+                2,
+                5,
+                0L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue(5),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+
+    }
+```
+
+执行结果：
+
+![d7d6c41dad725ff7ff07d8b30375e41d](Java高并发与多线程.resources/C15B9A49-622D-4887-82B2-E7A411A14960.png)
+
+可以看到我们主线程参与了任务的执行
+
+d. DiscardOldestPolicy 删除最老的任务，然后执行当前新提交的任务
+
+对于这种策略，因为某些情况下对于队列中等待时间最长的任务（即队列头节点任务）来说，它阻塞的时间最长，那么可能已经没有执行的必要了，所以直接舍弃来执行最新的任务，当然这个最新的任务也不是能立刻执行的，其实是将新提交的任务放入队列中，直白点说就是老任务让个坑给新任务，这个我们可以从源码看下：
+
+![8be2574d58fa2b0c8c7a1bef81a03e79](Java高并发与多线程.resources/01836B7C-BA6B-4FCA-AC38-F84164A1932E.png)
+
+可以看到先判断线程池是否关闭，如果正常，则将等待队列的头节点移除，即丢弃等待时间最久的任务，然后向线程池提交新的任务
+
+e. DiscardPolicy 静默拒绝
+
+从源代码可以看出这中策略拒绝其实不做任何事情，只是默默的将任务拒绝
+
+![3dd6ded8c194218cf810c987c933ebfa](Java高并发与多线程.resources/8DD4BBB4-D893-4C97-927F-4228497CF2FA.png)
+
+f. 自定义拒绝策略
+
+我们同样可以实现 `RejectedExecutionHandler` 接口实现自己的拒绝策略
+
+```
+ /**
+     * 核心线程数量 2；
+     * 最大线程数量：5；
+     * 线程空闲等待时间：0s;
+     * 等待队列：大小为5的链表队列；
+     * 拒绝策略：自定义拒绝策略，打印拒绝的任务信息
+     */
+    static ExecutorService getMyThreadPool5() {
+        return new ThreadPoolExecutor(
+                2,
+                5,
+                0L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue(5),
+                new RejectedExecutionHandler() {
+                    public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                        System.out.println("被拒绝的任务：" + r.toString());
+                    }
+                }
+        );
+    }
+```
+
+执行结果：
+
+![c238bfb3875705966e35bcf8de3f9a16](Java高并发与多线程.resources/35B98F2D-45F2-433C-ABDB-E3687C05E885.png)
+
+可以看到10个任务被执行，而10个任务被拒绝，因为线程池最大负载能力就是10 （最大线程数量 5 + 等待队列大小 5）
 
 
 
