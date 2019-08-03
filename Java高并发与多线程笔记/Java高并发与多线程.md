@@ -2096,8 +2096,136 @@ static ExecutorService getThreadPool1(){
 
 可以看到线程池执行任务时按照设置打印出了线程对象信息，同时发现线程池线程组也是main，这是因为我们定义的线程池就是在主线程中定义的啊，所以默认和主线程一致了。
 
+* 线程执行任务跟踪
 
+我们在创建线程池的时候如果不指定线程创建工厂，即线程创建由线程池自身负责，而创建的线程在执行任务的时候我们并不知道线程本身执行任务的时机（当然可以从任务角度捕获），如果想知道线程自身在执行任务前后相关内容呢？线程池提供了相应的触发方法供我们调用（包括线程池关闭事件）：
 
+`线程执行之前调用： protected void beforeExecute(Thread t, Runnable r)`
+
+`线程执行之后调用： protected void afterExecute(Runnable r, Throwable t)`
+
+`线程池关闭时调用： protected void terminated()`
+
+从源代码看线程池自身在相关方法里面并未做任何事情：
+
+![97c7c66a921963345f0e6c33d575593a](Java高并发与多线程.resources/94FA3C70-F557-4115-938B-1480B483710F.png)
+
+![f7cc6882d90e179ed8eff69e35147212](Java高并发与多线程.resources/CD7C87A8-7785-4A14-9891-AB0782C34F51.png)
+
+![f97d6283551f1ee923d0b7ca89f1903e](Java高并发与多线程.resources/46A77EAC-84FD-4310-B031-12D933201BD5.png)
+
+我们直接重写相关方法：
+
+```
+package com.skylaker.pool.worker;
+
+import java.util.concurrent.*;
+
+/**
+ * 线程池执行线程状态监控
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/8/3 9:02 AM
+ */
+public class ThreadExecute {
+    public static void main(String[] args) {
+        ExecutorService es = new ThreadPoolExecutor(
+                2,
+                3,
+                0, TimeUnit.SECONDS,
+                new ArrayBlockingQueue(5),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.DiscardPolicy()
+        ){
+            // 线程执行之前调用
+            @Override
+            protected void beforeExecute(Thread t, Runnable r) {
+                System.out.println("准备执行任务：" + ((MyTask)r).getId());
+            }
+
+            // 线程执行之后调用
+            @Override
+            protected void afterExecute(Runnable r, Throwable t) {
+                System.out.println("已执行完任务：" + ((MyTask)r).getId());
+            }
+
+            // 线程池关闭时调用
+            @Override
+            protected void terminated() {
+                System.out.println("线程池退出");
+            }
+        };
+
+        for(int i = 0; i < 10; i++){
+            MyTask task = new MyTask(i);
+//            es.submit(task);
+            es.execute(task);
+        }
+
+        es.shutdown();
+    }
+
+    static class MyTask implements Runnable {
+        private int id;
+
+        MyTask(int id){
+            this.id = id;
+        }
+
+        public int getId(){
+            return id;
+        }
+
+        public void run() {
+            System.out.println("当前执行任务线程ID：" + Thread.currentThread().getId() + "  执行任务ID：" + id);
+
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+```
+
+执行结果：
+
+![071a7426646bc55e96ffb106691e944a](Java高并发与多线程.resources/3ECA2CF2-C4C7-4EF9-9378-80C128586C26.png)
+
+从打印结果来看每次线程执行任务前后都对输出相应的动作信息，同时线程池在关闭后也会回调相关方法。
+
+这里我们仍然采用execute的方式提交，如果采用submit提交会报错：
+
+![f1343d839b59c545537e33beaf9f2632](Java高并发与多线程.resources/30245335-ACAE-4F52-A4F1-9A3F2AA4D6C7.png)
+
+这是为什么呢？我们跟踪下源代码，如果采用submit的方法：
+
+![acd71c683433d6571bab399854279a4a](Java高并发与多线程.resources/AEC7E7AE-3447-4F1A-8557-41698B4CF7D9.png)
+
+其实调用的是ExecuteService定义的submit方法，这是一种有返回值形式的提交，但是这里是接口定义，我们继续往下看实现定义，但是有几种实现：
+
+![83836e27ee600800df85f7beed7ba81e](Java高并发与多线程.resources/C688D62A-6B1B-43F9-A63A-6A6DB9305710.png)
+
+根据最开始线程继承结构，我们的ThreadPoolExecutor是实现了AbstractExecutorService接口的，所以我们直接到AbstractExecutorService里面看下：
+
+![092a05081a968ec71dfba358ac49c067](Java高并发与多线程.resources/F577FBC7-2100-40CA-9E2F-579C157E1121.png)
+
+这里有调用了newTaskFor方法：
+
+![b8d1f7e1ddd6b075cb7393ef3f64766d](Java高并发与多线程.resources/B47F15FC-EDFE-424C-9911-B8C61A62ADC2.png)
+
+可以看到用FutureTask封装生成了新的一个对象，而返回的FutureTask对象正好发送给了线程池执行，也就是说用submit方法提交的任务线程池其实执行FutureTask方法的，我们在线程触发事件beforeExecute中用了强转((MyTask)r).getId()，而我们的MyTask和FutureTask除了都实现了Runnable接口之外并无任何继承关系，那么也就无法强转，所以就出现强转异常了。
+
+那么为什么execute方法就可以了呢？我们点击进入execute方法，直接就是顶层接口Executor的execute方法：
+
+![432f8169b5e26b275b3db2f6fe3ffef7](Java高并发与多线程.resources/D1DD94EA-6388-4208-90A8-B7CE64AFB7B8.png)
+
+我们再一路跟踪到ThreadPoolExecutor执行任务的地方：
+
+![24506483b246a4e8f5fdfb480bcc23a1](Java高并发与多线程.resources/EDE4F432-8639-4E21-9896-4A3DA89266AF.png)
+
+可以看到线程在执行任务的前后确实调用了beforeExecute和afterExecute方法，同时执行的任务还是Runnable实例，即未被封装或转换的MyTask对象，那么我们在触发方法里面使用强转自然也就没有任何问题了。
 
 ##### 3.3 **Fork/Join**
 
