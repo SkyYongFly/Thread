@@ -15,9 +15,9 @@
 那么怎么应对高并发场景、解决高并发的导致的一系列问题呢？首先我们明确一个概念，多线程是高并发么？这个问题其实是伪命题，我们需要区分高并发与多线程的概念，高并发是一种场景，而多线程是一种技术手段、是应对解决高并发的一种方式。我们不能说多个服务员就是忙碌的场景，概念完全不对，是因为面对顾客多忙碌的场景我们采用多个服务员来应对。应对高并发有着各种各样的方式，例如我们常听说的微服务架构、分布式架构、集群模式、分库分表、缓存系统等等，而具体到实际处理对象上来说，我们可以开启多个线程来处理实际的问题，例如开启多个线程分别负责多个客户端请求连接（当然这个方式合不合理值得商榷）~~ 这个需要具体学习不同的高并发场景解决技术了~~
 
 我们再来说说线程，具体什么是线程？我们打开电脑，如果是windows平台我们可以打开资源管理器、mac平台打开活动监视器查看当前哪些应用在运行，例如
-    ![8cf7e270c294766864323710b5892a1c](Java高并发与多线程.resources/B8889637-774D-4913-AAD0-BD5CD2845CB9.png)
+    ![8cf7e270c294766864323710b5892a1c](README.resources/B8889637-774D-4913-AAD0-BD5CD2845CB9.png)
 这里我们可以看到很多应用，各个应用占用的CPU、内存等资源也在不停的变化，我们看到第一列显示进程名称，其实我们的一个应用在操作系统中就是被当做进程管理的，而每一个应用详细信息列中会显示线程数量：
-    ![d679d6a90a9305f37932e16645c45027](Java高并发与多线程.resources/2C4394B6-1A8A-4A2A-AFB2-F72BA0FA895A.png)
+    ![d679d6a90a9305f37932e16645c45027](README.resources/2C4394B6-1A8A-4A2A-AFB2-F72BA0FA895A.png)
 看到这里我们大致就能知道线程其实是进程内部的资源对象。即进程是应用级别的调度对象，就是一个个的应用程序占用CPU、内存等系统资源的逻辑对象；线程就是进程内部、会公用进程资源的调度对象。回到上面的例子，进程就相当于一个个不同的饭店，每个饭店中不同的服务员就相当于线程。而常常开启多个线程就是为了提升系统运行效率，毕竟饭店只有一个服务员的话顾客一多肯定是忙不过来的，但是非要就一个的话，来回服务倒是可以，一边服务员忙成狗，一边客人不愿意等待还没点菜就跑了，回到计算机中就是一堆任务迟迟得不到解决、一堆用户买买买请求得不到处理，自然就会导致系统过载，或系统崩溃、或大量请求失效~~ 
 
 面对高并发我们可以采用多线程方式处理，那是不是开启更多的线程就更能应对、更好的解决问题呢？并不是，就好比如饭店顾客多，总不能有多少顾客就雇佣多少服务员吧，真这样的话饭店老板就哭了，得付多少薪水啊、还咋挣钱？同样系统开启更多的线程，那么所产生的系统资源消耗和上下文切换等带来的负担也逐渐增大，所以需要综合考量开启合适数量的线程。
@@ -84,12 +84,14 @@ public class ThreadNew {
     }
 ```
  执行结果：
- ![5ec099c165d8be43573c3bc4215ccf07](Java高并发与多线程.resources/03A73881-F522-4340-9426-199A44C3F539.png)
+ 
+ ![5ec099c165d8be43573c3bc4215ccf07](README.resources/03A73881-F522-4340-9426-199A44C3F539.png)
 
 在这里，我们通过继承Java线程对象Thread创建了一个线程（我们确实创建了线程本身吗？），然后通过start方法来启动运行，同时我们还在main方法输出所谓的主线程ID，最后执行结果输出了三行内容，我们看到第一行 Hello... 这个内容，这个正是我们在线程run方法中定义的，第二、三行分别输出了子线程、主线程ID。
 
 我们的main方法作为入口方法，负责执行的对象被称为主线程，而通过定义一个Thread，执行start方法，就是创建了一个子线程。从上述结果我们可以验证确实启动了一个新的子线程执行了执行代码指令。主线程和子线程的关系可以表示如下：
-![53f3670ba9d3e8b1f0d089b893a72107](Java高并发与多线程.resources/6DF0AF24-E89F-4034-8207-46877FDDAB02.png)
+
+![72cd85b1a3715afd73076e05a5d55657](README.resources/355F297D-919A-42DE-9F85-A632799C2C09.png)
 
 主线程、子系统是两个不同的个体对象，他们单独执行自己的程序指令，可以在主线程中启动子线程。
 
@@ -121,7 +123,7 @@ public class ThreadNew {
 ```
 执行结果：
 
-![998149a69ab630aa4c09d253cd97e115](Java高并发与多线程.resources/42931045-4CF3-4ADA-9036-5C3D8E3AEA68.png)
+![998149a69ab630aa4c09d253cd97e115](README.resources/42931045-4CF3-4ADA-9036-5C3D8E3AEA68.png)
 
 可以看到和方式一类似的结果，不过这里我们发现主线程的信息先打印出来了，如果多次执行其实可以发现有时子线程先打印信息，有时主线程先打印，这个正是因为主线程、子系统是两个相互独立的个体，主线程启动了子线程，相当于系统中有两个线程同时在运行，那么具体谁先执行完成是无法确定的，所以也就是谁先打印信息也就无法确定了。
 
@@ -129,7 +131,7 @@ public class ThreadNew {
 
 上面两种方式是创建线程的基本方式，但是其实说到底也是一种方式，因为Thread对象默认实现了Runnable接口：
 
-![c04a0d044920f09cd021c1f14f833dfa](Java高并发与多线程.resources/49F02DCE-C88A-416F-96B8-C202938A25C5.png)
+![c04a0d044920f09cd021c1f14f833dfa](README.resources/49F02DCE-C88A-416F-96B8-C202938A25C5.png)
 
 即创建线程都需要实现Runable接口，不过如果我们直接通过继承Thread来实现的话，因为Java单继承特性我们无法再继承其他对象，所以最好通过实现接口的方式。
 
@@ -150,7 +152,7 @@ public class ThreadNew {
 ```
 执行结果：
 
-![ed58699b14589615ff47fba156fd62f1](Java高并发与多线程.resources/EE272F06-3E7A-45E4-B84B-787FD43557CF.png)
+![ed58699b14589615ff47fba156fd62f1](README.resources/EE272F06-3E7A-45E4-B84B-787FD43557CF.png)
 
 我们定义了个Thread02实例，理论上如果我们实现Runnable接口的对象实例就是线程本身，那么这里三个线程执行就应该是同一个线程，应该输出同样的线程ID，但是结果显示并非如此，而是输出了三个线程ID，也就是通过 new Thread 方法才真正定义了线程，但其实也不完全是，更准确的说法是Thread执行start方法后主线程通知JVM去创建三个不同的线程，然后执行我们在Thread02的run方法中定义的代码内容。只不过很多时候因为我们用这样的方式启动的就是线程，所以就直接称Thread为线程了。
 
@@ -174,7 +176,7 @@ public class ThreadNew {
 ```
 运行结果：
 
-![a5aad42dd0d61e1c8b4806591f7e0de2](Java高并发与多线程.resources/25BFDAA3-2444-428D-8640-9825609B3ADC.png)
+![a5aad42dd0d61e1c8b4806591f7e0de2](README.resources/25BFDAA3-2444-428D-8640-9825609B3ADC.png)
 
 我们利用两种方式创建的线程，直接运行run方法，同时输出主线程ID，如果run方法启动的是线程执行，那么理论上他们对应的线程ID应该和主线程不同，但是很意外，输出的结果显示两个子线程和主线程的ID是一致的，说明通过run方法根本没有新建子线程，就是主线程在运行。
 
@@ -192,7 +194,7 @@ public class ThreadNew {
 ```
 执行结果：
 
-![21350c69db3f45454a4d548658cf1998](Java高并发与多线程.resources/241DD8D4-EC5B-4149-BE38-5B246B2E0ED0.png)
+![21350c69db3f45454a4d548658cf1998](README.resources/241DD8D4-EC5B-4149-BE38-5B246B2E0ED0.png)
 
 前面两行创建了线程，执行了代码指令，但是再次执行start方法就报错了，因为已经启动了线程，正在执行指令，无法再次发送任务了，直白点人家线程已经启动了你还要去启动不是多余么~~ 而抛出的异常也阐明了这一点，IllegalThreadStateException，非法线程状态，线程已经处于就绪状态不能又直接就绪。
 
@@ -222,11 +224,11 @@ public class ThreadStop {
 ```
 输出结果：
 
-![3c7d5820255a5585039fe74ae780c1f3](Java高并发与多线程.resources/F37BDF4F-5358-4E41-8FA8-C801910BDA73.png)
+![3c7d5820255a5585039fe74ae780c1f3](README.resources/F37BDF4F-5358-4E41-8FA8-C801910BDA73.png)
 
 可以看到输出了期望的值~~ 但是我们发现一个问题，stop方法被标识为横线了，这表明这是一个过时的方法，一个废弃的方法必然有其被废弃的原因，一般都会导致一些问题或者有了更好的方法。我们看下官方注释：
 
-![f74416f8292b3d5d1be0dcde46e06b6f](Java高并发与多线程.resources/B7976E8E-D5AD-492F-850D-D52B243D2EEB.png)
+![f74416f8292b3d5d1be0dcde46e06b6f](README.resources/B7976E8E-D5AD-492F-850D-D52B243D2EEB.png)
 
 里面说明了弃用该方法的原因，大致意思就是如果使用stop方法去终止一个线程，那么该线程所持有的监视器（一般来说锁对象）都会直接释放掉，而这些监视器是保证线程之间同步的措施，如果突然释放掉，那么其他线程就会获的访问临界区资源的资格，进而操作临界区资源，可能导致临界区资源破坏。
 
@@ -348,7 +350,7 @@ public class ThreadStop2 {
 ```
 执行结果：
 
-![b13e3a80a456587789f85b8eebd28b7a](Java高并发与多线程.resources/E08F5A41-5EC5-4D68-8C0C-1E1413744812.png)
+![b13e3a80a456587789f85b8eebd28b7a](README.resources/E08F5A41-5EC5-4D68-8C0C-1E1413744812.png)
 
 可以看到测试代码输出了意外场景的数据，仔细观察发现，发生意外时候name的值（对应的int值）总是比age的值小1，这是为什么呢？因为我们的写线程中是先设置age的值得，但是在到设置name的值中间有个短暂的间隔，但正是因为这个间隔就产生了问题，因为在此期间，写线程突然被stop终止了，那么就会导致写线程只设置了age的值却没来得及设置name的值，这样我们以时间戳值设置变量的话，就会发现name值比age小1。
 
@@ -413,7 +415,7 @@ public static void main(String[] args) throws InterruptedException {
 
 执行结果：
 
-![ca35bfda3797ee97f423e7f080754fbd](Java高并发与多线程.resources/E5D2A1E6-BBA7-41EF-BFFF-699B5E1748FC.png)
+![ca35bfda3797ee97f423e7f080754fbd](README.resources/E5D2A1E6-BBA7-41EF-BFFF-699B5E1748FC.png)
 
 通知线程中断，但是线程并没有对中断进行处理，因此不会结束程序。
 
@@ -448,7 +450,7 @@ B. 对中断进行判断处理
 
 执行结果:
 
-![d83e1ce86beeb9f7daf543abaac19304](Java高并发与多线程.resources/3232D5F5-6762-44FE-941D-A23C7274A577.png)
+![d83e1ce86beeb9f7daf543abaac19304](README.resources/3232D5F5-6762-44FE-941D-A23C7274A577.png)
 
 子线程对中断标志位进行判断，如果产生了中断则结束。
 
@@ -493,7 +495,7 @@ C.休眠中断处理
 
 执行结果：
 
-![8df258fa395e542056fb670dc5751635](Java高并发与多线程.resources/7F53C112-A55B-4F1A-8CFA-47A6E3440C29.png)
+![8df258fa395e542056fb670dc5751635](README.resources/7F53C112-A55B-4F1A-8CFA-47A6E3440C29.png)
 
 子线程处理逻辑中存在sleep方法，线程在休眠期间如果被中断则会产生中断异常，且会清除中断标志位。但是产生中断异常后我们不应该直接退出线程，因为后续可能还会有其他处理逻辑，可以通过重新设置中断标志位，进行判断后处理。
 
@@ -508,7 +510,7 @@ A. public final void wait() throws InterruptedException
 
 该方法为object方法，即所有对象都具有该方法。当线程中的对象调用wait方法后当前所在线程便暂停当前程序处理逻辑，然后释放当前线程所持有的锁，进入调用wait方法对象的等待队列，这个等待队列其实是一个虚拟的概念，当期对象上面等待的线程都在这个队列中，这个过程可以用如下图示表达：
 
-![1d25265d6702cc7864d9010158a56ea4](Java高并发与多线程.resources/326FBBC9-94DF-4702-8D40-6C26376E770A.png)
+![1d25265d6702cc7864d9010158a56ea4](README.resources/326FBBC9-94DF-4702-8D40-6C26376E770A.png)
 
 B. public final native void notify()
 
@@ -516,7 +518,7 @@ B. public final native void notify()
 
 不过还有个 notifyAll 方法，唤醒所有等待的线程。
 
-![b1b2b54817a96ec7b969d170449e92b1](Java高并发与多线程.resources/6A945927-5881-4AED-81A9-D4B4792BB224.png)
+![b1b2b54817a96ec7b969d170449e92b1](README.resources/6A945927-5881-4AED-81A9-D4B4792BB224.png)
 
 * 代码实例
 ```
@@ -579,7 +581,7 @@ public class ThreadWaitNotify {
 ```
 执行结果：
 
-![7b368155ecedbfbf426d0b6813925c76](Java高并发与多线程.resources/192D07F2-8345-436F-B3BC-ED7D9902493D.png)
+![7b368155ecedbfbf426d0b6813925c76](README.resources/192D07F2-8345-436F-B3BC-ED7D9902493D.png)
 
 在这里我们模拟了两个线程，在等待线程中，通过锁对象通知线程进行等待，然后在通知线程中锁对象进行唤醒等待队列中的阻塞线程。我们可以看待输出结果第四行显示的是等待线程之前执行wait方法后的逻辑内容，说明进行wait的线程被唤醒后会继续在原来等待的地方继续运行。而第四行比第三行延时2秒，这个因为我们在通知线程中notify之后，又故意等待了两秒，这个恰恰说明通知线程在notify之后并没有立即释放掉当前持有的锁资源，而是执行完自己的剩余逻辑才释放掉锁资源，这个也是一种保证逻辑正确、数据正确的方式，不然就和stop类似了。
 
@@ -639,7 +641,7 @@ public class ThreadWaitNotify {
 
 执行结果：
 
-![0a7b51d310646f7e205daba4bb55bad2](Java高并发与多线程.resources/41092A9A-C0B6-4DA9-882F-B34E0D5452B7.png)
+![0a7b51d310646f7e205daba4bb55bad2](README.resources/41092A9A-C0B6-4DA9-882F-B34E0D5452B7.png)
 
 这里可以看到等待线程在等待后就一直没有下文了，即一直处于等待阻塞状态，因为在它的锁对象object上面没有其他线程来唤醒他，所以就一直处于阻塞状态了。而通知线程它是通知锁对象object2上面等待队列中的等待线程，那么肯定通知不到object上等待的线程了。好比上面你去吃火锅，还在等待呢，结果旁边麻辣烫店的服务员把你薅过去了，你是不是一脸懵逼，答应么（我们正常来说哈）？
 
@@ -702,7 +704,7 @@ public class ThreadWaitNotify {
 
 执行结果：
 
-![acaa590ce26b1cf8989a5f81ba51a275](Java高并发与多线程.resources/60E3D92E-4368-47E4-99E1-7FCCEF4D0948.png)
+![acaa590ce26b1cf8989a5f81ba51a275](README.resources/60E3D92E-4368-47E4-99E1-7FCCEF4D0948.png)
 
 可以看到两个线程在执行 wait 和 notify 时都报错了，这个说明要想执行 wait 和 notify 必须是同一个锁对象！其实仔细想想，如果不是用锁对象，那么也就无法控制线程之间同步，导致临界区资源问题。好比如上面你去吃火锅，没有服务员控制下顾客，大家随意抢桌子，估计就乱了~~~
 
@@ -779,11 +781,11 @@ public class ThreadSuspendResume {
 
 运行正常结果：
 
-![bbbefc46e159c8dad5ec92ba3df552c6](Java高并发与多线程.resources/94CFD87F-B592-40D4-9588-03325E3E7B02.png)
+![bbbefc46e159c8dad5ec92ba3df552c6](README.resources/94CFD87F-B592-40D4-9588-03325E3E7B02.png)
 
 非正常运行结果：
 
-![37be43eb48e3143ee783a7c75833f35d](Java高并发与多线程.resources/205911D6-0F1E-4742-8062-5872E7ED860E.png)
+![37be43eb48e3143ee783a7c75833f35d](README.resources/205911D6-0F1E-4742-8062-5872E7ED860E.png)
 
 上面显示了两种不同的执行结果，一种正常的，两个线程都能正常结束运行，而另外一种则是非正常情况，线程2一直在挂起中，不能结束，这是因为线程2的通知唤醒resume唤醒时机在挂起suspend之前，这样线程2在挂起之后就一直等不到唤醒，那么也就一直等待了，造成结束不了。
 
@@ -831,7 +833,7 @@ public class ThreadJoin {
 
 执行结果：
 
-![179457a9bcb2e49b73ca213632b06e11](Java高并发与多线程.resources/FF82C54F-3932-4644-8B37-C3ACC845DE1D.png)
+![179457a9bcb2e49b73ca213632b06e11](README.resources/FF82C54F-3932-4644-8B37-C3ACC845DE1D.png)
 
 当然如果子线程运行足够快，有时会得到正确的最终结果 4950，不过很多情况下是小于4950的，就是因为主线程并未等到子线程执行完就直接打印结果了，但是如果主线程主动等到子线程执行完成就能始终得到最终的值。
 
@@ -873,7 +875,7 @@ public class ThreadJoin {
 
 执行结果：
 
-![cb7af0b8a898e3bded824898ff82f22c](Java高并发与多线程.resources/6A0A6729-C64A-4526-A5CC-1030B1EDA6DF.png)
+![cb7af0b8a898e3bded824898ff82f22c](README.resources/6A0A6729-C64A-4526-A5CC-1030B1EDA6DF.png)
 
 * 线程谦让：yield
 
@@ -919,7 +921,7 @@ public class ThreadYield {
 
 运行结果：
 
-![9f2f80923538941e3f2737a1b8c2d5f3](Java高并发与多线程.resources/DDFF00A3-647D-47AC-BD5F-B11E7DB6B05B.png)
+![9f2f80923538941e3f2737a1b8c2d5f3](README.resources/DDFF00A3-647D-47AC-BD5F-B11E7DB6B05B.png)
 
 可以看到线程1让出后线程2优先运行。
 
@@ -982,7 +984,7 @@ public class ThreadGroupCls {
 
 执行结果：
 
-![5ec92d1df46aa4c2c9a53ffa9fea5b8a](Java高并发与多线程.resources/B259E137-EE1C-4359-B136-8E38B0BBFE05.png)
+![5ec92d1df46aa4c2c9a53ffa9fea5b8a](README.resources/B259E137-EE1C-4359-B136-8E38B0BBFE05.png)
 
 这里我们设置了两个线程，放入同一个线程组中，并可以通过线程组对象的 `public int activeCount()` 方法获取当前线程组中活动线程数量，当然这个值每次不一定相同。线程组 `public void list()` 打印当前线程组信息。
 
@@ -1032,7 +1034,7 @@ public class ThreadDaemon {
 
 运行结果：
 
-![23c296b531d1f25eb2b410b19dd84377](Java高并发与多线程.resources/7E96F88C-35E7-43D4-B5AC-86C8507158A7.png)
+![23c296b531d1f25eb2b410b19dd84377](README.resources/7E96F88C-35E7-43D4-B5AC-86C8507158A7.png)
 
 需要注意 setDaemon 方法需要在线程启动前设置，不然无法将线程设置为守护线程。另外从代码执行结果来看，主线程执行结束后守护线程也结束了，这是为啥？所谓皮之不存毛将焉附，守护线程是为了其他主线程存在的，如果主要的线程对象代码执行完了，那么意味着程序结束，那么自然守护线程也就没有存在的必要了，所以也就随着其他非守护线程的都执行完毕而消失。
 
@@ -1095,7 +1097,7 @@ public class ThreadPriority {
 
 执行结果：
 
-![2868dc32ca7c3ca067458c851095a626](Java高并发与多线程.resources/098F7396-3AA0-49D1-9F01-ECBE55B043E5.png)
+![2868dc32ca7c3ca067458c851095a626](README.resources/098F7396-3AA0-49D1-9F01-ECBE55B043E5.png)
 
 两个线程几乎都是完成计算任务。
 
@@ -1160,7 +1162,7 @@ public class ThreadPriority {
 
 执行结果：
 
-![8ae134424f75d68ffb8939ec1b133f18](Java高并发与多线程.resources/D125CE80-A57E-4D44-AA73-6049DDCF5BE2.png)
+![8ae134424f75d68ffb8939ec1b133f18](README.resources/D125CE80-A57E-4D44-AA73-6049DDCF5BE2.png)
 
 好像也几乎是同时完成的，这不是设置线程优先级了吗？其实这个线程设置了优先级并不意味着低优先级的线程执行效率就一定慢，可能在当前环境某个时刻低优先级的线程就是突然更能抢占CPU。另外主要因为我们这里并没有设置线程间资源抢占，即你做你的事，我用我的资源，互不冲突，(另外计算的数也小)我们可以设置资源抢占来看具体情况：
 
@@ -1226,7 +1228,7 @@ public class ThreadPriority2 {
 
 执行结果：
 
-![41dece72634f62e5e2784129749cefb7](Java高并发与多线程.resources/1FC7507B-0116-49B9-B86D-E61F94191F35.png)
+![41dece72634f62e5e2784129749cefb7](README.resources/1FC7507B-0116-49B9-B86D-E61F94191F35.png)
 
 这里我们设置高低优先级线程抢占同一个锁资源，多次执行会发现常常高优先级线程先运行完。
 
@@ -1271,19 +1273,19 @@ public class ThreadPriority2 {
 3.2.2 **Java线程池结构**
 
 我们先来看下Java线程池相关组件基本结构关系：
-![0525b0a0decadd26b275c1e86e71f4ae](Java高并发与多线程.resources/D4EE1BA1-A8BE-4ADB-B640-C7FEFCD7DF8D.jpg)
+![0525b0a0decadd26b275c1e86e71f4ae](README.resources/D4EE1BA1-A8BE-4ADB-B640-C7FEFCD7DF8D.jpg)
 
 线程池通过Executor及其相关实现类定义，Executor作为顶层接口定义了线程池基本行为，即执行分配的任务：接收Runnable接口实现对象，完成其中指定的任务指令。
 
-![c08985a907f59661fe7f00f3d7d15ef5](Java高并发与多线程.resources/E51C0910-6802-4D7E-818F-FC71285EE8FB.png)
+![c08985a907f59661fe7f00f3d7d15ef5](README.resources/E51C0910-6802-4D7E-818F-FC71285EE8FB.png)
 
 ExecutorService定义了一些线程池基本的行为方法，例如关闭线程池、提交任务等。
 
-![24b1d60ba226829a5d7cbc1f3c39464d](Java高并发与多线程.resources/2B6CDAB9-C325-4C21-B8FF-2EB5778B6B83.png)
+![24b1d60ba226829a5d7cbc1f3c39464d](README.resources/2B6CDAB9-C325-4C21-B8FF-2EB5778B6B83.png)
 
 核心组件是ThreadPoolExecutor，由该组件创建实际的线程池，例如定义线程池大小、线程创建工厂、任务拒绝策略等。
 
-![c39c1bb36b96346e867a137e2632f24b](Java高并发与多线程.resources/2CCC721C-B82D-4EC0-AAC9-069E48383154.png)
+![c39c1bb36b96346e867a137e2632f24b](README.resources/2CCC721C-B82D-4EC0-AAC9-069E48383154.png)
 
 
 Executors是一个线程工具类，它可以创建不同类型的线程池，但是本质上其实都是通过ThreadPoolExecutor实现的。
@@ -1343,7 +1345,7 @@ public class FixedThreadPool {
 
 运行结果：
 
-![d4f7b11969c6b7c22e27fd62c1b4c8f0](Java高并发与多线程.resources/11BA8D8F-394F-4A4E-B100-69E486E15F89.png)
+![d4f7b11969c6b7c22e27fd62c1b4c8f0](README.resources/11BA8D8F-394F-4A4E-B100-69E486E15F89.png)
 
 这个我们定义了一个数量为5的线程池，即池中有5个线程，我们发送了10个任务，每个任务执行完都会休眠一秒，如果我们将10个任务给一个线程执行，那么就是顺序执行，最起码要10秒钟，但是发送给线程池只需要两秒钟左右。根据打印的线程ID，我们可以看到执行任务的确实有5个线程，他们几乎同时执行分配的任务，然后过了一秒钟处理剩下的等待的5个任务。
 
@@ -1396,7 +1398,7 @@ public class SingleThreadPool {
 
 执行结果：
 
-![ef5519760a19b7cf3528e48e8c9ec02b](Java高并发与多线程.resources/1110A064-36DF-4E4C-9D50-5984ADDB67F9.png)
+![ef5519760a19b7cf3528e48e8c9ec02b](README.resources/1110A064-36DF-4E4C-9D50-5984ADDB67F9.png)
 
 可以看到只有一个线程在执行任务，而且按照任务的特点，每隔一秒执行一次。
 
@@ -1449,7 +1451,7 @@ public class CachedThreadPool {
 
 执行结果：
 
-![df68670d6f906b3abf0d1aaacb8c5461](Java高并发与多线程.resources/82BBE654-5621-40F5-99B0-20694B0FD93B.png)
+![df68670d6f906b3abf0d1aaacb8c5461](README.resources/82BBE654-5621-40F5-99B0-20694B0FD93B.png)
 
 这里我们可以看到我们同时发送了10个任务，线程池就创建了10个线程进行处理，因为我们的任务是同时发送给线程池执行的，线程池在收到任务后发现没有空闲线程处理则创建新线程进行处理。如果我们的任务前后存在间隔呢？
 
@@ -1470,7 +1472,7 @@ public static void main(String[] args) throws InterruptedException {
     }
 ```
 
-![b1eaa05a949f0d14cf036f521bfcaef9](Java高并发与多线程.resources/04940AB7-5084-422B-B159-7128ED6EB034.png)
+![b1eaa05a949f0d14cf036f521bfcaef9](README.resources/04940AB7-5084-422B-B159-7128ED6EB034.png)
 
 这里我们依然还是提交10个任务，不过每个任务之间隔两秒发送给线程池，因为一个任务执行只需要差不多1秒左右，所以再下一个任务过来的时候上一个任务已经执行完成了，之前的线程也就处于空闲模式，等下一个任务过来的时候就可以复用这个线程了。
 
@@ -1523,7 +1525,7 @@ public class SingleScheduledThreadPool {
 }
 ```
 
-![c9284e831a3e1fac9341732f42f920ac](Java高并发与多线程.resources/577FCC45-5503-449D-880B-E555A29C5B33.png)
+![c9284e831a3e1fac9341732f42f920ac](README.resources/577FCC45-5503-449D-880B-E555A29C5B33.png)
 
 在这里我们创建了一个延时5秒执行的线程池，可以通过执行结果看到我们在提交了任务后5秒才执行了任务。
 
@@ -1549,7 +1551,7 @@ public ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
 ```
 scheduleAtFixedRate以固定频率进行任务调度，其以每一个任务开始时间为调度标准，即上一个任务开始时间之后经过period长时间进行下一个任务。
 
-![f72b8982d22b89c0f7241eedf3fe8e6c](Java高并发与多线程.resources/E8C7B305-9140-4AC6-AD81-75B2CD0AEF2F.png)
+![f72b8982d22b89c0f7241eedf3fe8e6c](README.resources/E8C7B305-9140-4AC6-AD81-75B2CD0AEF2F.png)
 
 代码示例：
 
@@ -1593,7 +1595,7 @@ public class SingleScheduledThreadPool {
 ```
 执行结果：
 
-![5e3a888bb342f78fb7e178b80cfe0fe1](Java高并发与多线程.resources/8B20AA58-E875-4D26-9531-B83A1F6AEB17.png)
+![5e3a888bb342f78fb7e178b80cfe0fe1](README.resources/8B20AA58-E875-4D26-9531-B83A1F6AEB17.png)
 
 可以看到线程在提交任务后指定延时1秒后执行任务调度，然后每两秒执行一次任务，因为设置的间隔时间为2秒。但是我们考虑一种情况，这里每个任务的执行耗时是短于任务调度周期的，所以下一个任务开始时候距离上一个任务开始时候正好2秒，但是如果任务执行耗时大于调度周期呢？我们稍微修改下任务执行耗时：
 
@@ -1612,7 +1614,7 @@ public void run() {
 
 执行结果：
 
-![c7251552a5c5b359ccd1ae6d1e9b06f0](Java高并发与多线程.resources/340A9C3B-45F8-4223-B7F1-1660A726239E.png)
+![c7251552a5c5b359ccd1ae6d1e9b06f0](README.resources/340A9C3B-45F8-4223-B7F1-1660A726239E.png)
 
 发现现在的调度周期是任务执行的耗时，即如果任务执行耗时超过下一个任务应该执行的间隔耗时，那么下一个任务直接以上一个任务的结束时间作为开始时间，即上一个任务结束下一个任务继续。
 
@@ -1627,7 +1629,7 @@ public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command,
 
 scheduleWithFixedDelay方法也是固定频率执行任务调度，但是和上一个scheduleAtFixedRate不同的是，它是以上一个任务结束时间作为调度标准，即上一个任务执行完了之后再经过delay长时间执行下一个任务。
 
-![28ba3bfc77f09639860ace6c590b7e45](Java高并发与多线程.resources/5B39660C-6D31-41EB-B5F9-C59CD11B5523.png)
+![28ba3bfc77f09639860ace6c590b7e45](README.resources/5B39660C-6D31-41EB-B5F9-C59CD11B5523.png)
 
 ```
 package com.skylaker.pool;
@@ -1670,7 +1672,7 @@ public class SingleScheduledThreadPool {
 
 执行结果：
 
-![40d9bf6d6be7bcbf2f64210548efced3](Java高并发与多线程.resources/0513E803-C2F0-42F9-AE4E-380287B63229.png)
+![40d9bf6d6be7bcbf2f64210548efced3](README.resources/0513E803-C2F0-42F9-AE4E-380287B63229.png)
 
 可以看到任务执行周期3秒，因为单个任务耗时1秒，再加上下个任务等待耗时2秒。
 
@@ -1678,7 +1680,7 @@ public class SingleScheduledThreadPool {
 
 上面我们创建了几种不同形式的线程池，其实如果通过查看源码，我们会发现这几种线程池只不过都是ThreadPoolExecutor的封装，通过设置不停参数，创建不同特点的线程池，例如单个数量线程池，其实就是设置线程数量为1——核心线程数、最大线程数都是1的线程池：
 
-![0721dcf4db057357d9421dad24c8278d](Java高并发与多线程.resources/EEB93FB1-96E9-4361-9611-DA41F22B30F0.png)
+![0721dcf4db057357d9421dad24c8278d](README.resources/EEB93FB1-96E9-4361-9611-DA41F22B30F0.png)
 
 A. 相关参数
 
@@ -1714,9 +1716,9 @@ B. 核心参数
 
 等待队列存放已经提交但是尚未被执行需要等待的任务，队列实现BlockingQueue接口，例如单线程线程池：
 
-![b08db520cab0d9229cb80d5f146da309](Java高并发与多线程.resources/651B184B-26A5-440B-B2F7-AC2610F5D07B.png)
+![b08db520cab0d9229cb80d5f146da309](README.resources/651B184B-26A5-440B-B2F7-AC2610F5D07B.png)
 
-![a70cc6a95387107b304eaf0a0f6992c2](Java高并发与多线程.resources/2A9FBBD9-D634-42CD-A625-3B140E04F296.png)
+![a70cc6a95387107b304eaf0a0f6992c2](README.resources/2A9FBBD9-D634-42CD-A625-3B140E04F296.png)
 
 线程池等待队列一共有几种不同的类型，分别是：
 
@@ -1724,7 +1726,7 @@ a. SynchronousQueue 直接提交任务的队列
 
 动态大小的线程池用的就是这种队列，SynchronousQueue队列没有容量，即提交的任务不会真正保存在队列中，提交的任务直接发送给线程池执行，如果没有空闲线程，那么直接新建新的线程执行任务，如果总的线程数量达到设置的最大线程数量则执行拒绝策略。这个队列和我们表面上看到的cachedThreadPool特点符合，线程池中线程数量随着任务数急速增长，如果不设置最大线程数量，很容易资源消耗，但是设置的小了，又很容易执行拒绝策略，因为该队列没有容纳任务的能力。
 
-![e0028968d2cb792ae535357cecee3bcf](Java高并发与多线程.resources/8C9D6CAB-27B2-46B8-A5B6-EF59DF8618CD.png)
+![e0028968d2cb792ae535357cecee3bcf](README.resources/8C9D6CAB-27B2-46B8-A5B6-EF59DF8618CD.png)
 
 b. ArrayBlockingQueue 有界任务队列
 
@@ -1734,7 +1736,7 @@ c. LinkedBlockingQueue 无界任务队列
 
 通过链表实现的任务队列，链表本身是不需要连续内存空间的，而且方便动态新增节点，所以可以无限扩增。使用该队列，如果核心线程数量已满，则将任务放到该队列进行等待，无限放入，并不会创建核心线程数量之外的线程处理任务，所以这个队列如果任务很多时候，容易消耗资源。单个数量线程池用的就是这种队列：
 
-![a20bb5f9b7abf81719b69538154a09da](Java高并发与多线程.resources/A08BE2EF-EAA7-4DB6-938C-3556E479816D.png)
+![a20bb5f9b7abf81719b69538154a09da](README.resources/A08BE2EF-EAA7-4DB6-938C-3556E479816D.png)
 
 d. PriorityBlockingQueue 优先任务队列
 
@@ -1805,11 +1807,11 @@ public static void main(String[] args) {
 
 执行结果：
 
-![a2d0ca951db46821323aff9cd941f939](Java高并发与多线程.resources/677CF457-AD10-4470-9415-D0F366D1C134.png)
+![a2d0ca951db46821323aff9cd941f939](README.resources/677CF457-AD10-4470-9415-D0F366D1C134.png)
 
 可以看到在超出线程池负荷能力后直接抛出异常，异常信息提示线程池拒绝任务，且显示当前线程池信息，例如线程池大小、活动线程、等待队列大小：
 
-![6f07e55b0724db05fc1899a9ffb1d8c2](Java高并发与多线程.resources/3A84BAB5-60B4-4474-9328-0DC7980EF8C9.png)
+![6f07e55b0724db05fc1899a9ffb1d8c2](README.resources/3A84BAB5-60B4-4474-9328-0DC7980EF8C9.png)
 
 c. CallerRunsPolicy 调用者执行拒绝的任务
 
@@ -1837,7 +1839,7 @@ c. CallerRunsPolicy 调用者执行拒绝的任务
 
 执行结果：
 
-![d7d6c41dad725ff7ff07d8b30375e41d](Java高并发与多线程.resources/C15B9A49-622D-4887-82B2-E7A411A14960.png)
+![d7d6c41dad725ff7ff07d8b30375e41d](README.resources/C15B9A49-622D-4887-82B2-E7A411A14960.png)
 
 可以看到我们主线程参与了任务的执行
 
@@ -1845,7 +1847,7 @@ d. DiscardOldestPolicy 删除最老的任务，然后执行当前新提交的任
 
 对于这种策略，因为某些情况下对于队列中等待时间最长的任务（即队列头节点任务）来说，它阻塞的时间最长，那么可能已经没有执行的必要了，所以直接舍弃来执行最新的任务，当然这个最新的任务也不是能立刻执行的，其实是将新提交的任务放入队列中，直白点说就是老任务让个坑给新任务，这个我们可以从源码看下：
 
-![8be2574d58fa2b0c8c7a1bef81a03e79](Java高并发与多线程.resources/01836B7C-BA6B-4FCA-AC38-F84164A1932E.png)
+![8be2574d58fa2b0c8c7a1bef81a03e79](README.resources/01836B7C-BA6B-4FCA-AC38-F84164A1932E.png)
 
 可以看到先判断线程池是否关闭，如果正常，则将等待队列的头节点移除，即丢弃等待时间最久的任务，然后向线程池提交新的任务
 
@@ -1919,7 +1921,7 @@ public static void main(String[] args) {
 
 打印结果：
 
-![ab8f0c25e86cc3341a9cdfed0e3cd54e](Java高并发与多线程.resources/874AB283-38CD-4C93-824F-5B8A81F19E20.png)
+![ab8f0c25e86cc3341a9cdfed0e3cd54e](README.resources/874AB283-38CD-4C93-824F-5B8A81F19E20.png)
 
 在这里我们通过重写DiscardOldestPolicy拒绝策略，打印在拒绝的时候相关队列信息，观察该策略的方式，可以看到：一开始发送两个任务到线程池，核心线程数量设置 的2，所以有两个线程在执行任务，这个时候新来的任务2、3、4、5、6被放入了等待队列，这个时候又有新的任务过来，因为设置的最大线程数量为5，所以可以创建新的线程来执行任务7、8、9；这个时候又有新任务10过来，但是线程池已经达到负荷了，这个时候根据拒绝策略就要把等到队列中的最老任务清除掉，即队列头部的任务2，所以可以看到等待队列变成了3、4、5、6、10，后面11、12等任务来的时候同样执行相同的操作；直到没有新的任务过来，即任务19发送过后，等待对了中缓存的任务为15、16、17、18、19，这个时候线程空闲开始处理等待队列中的任务。
 
@@ -1953,7 +1955,7 @@ static class MyTask implements Runnable {
 
 打印结果：
 
-![e19d2fe1236f66b39cd07b11114288be](Java高并发与多线程.resources/9ED31844-B5EB-46AA-A320-943331B93F0B.png)
+![e19d2fe1236f66b39cd07b11114288be](README.resources/9ED31844-B5EB-46AA-A320-943331B93F0B.png)
 
 同样任务0、1发送到线程池执行，然后2、3、4、5、6进入等待队列，再然后任务7、8、9启动新线程执行，我们观察到“将被丢弃的任务ID：2”，但是上面的显示信息是线程执行了任务2（这里忽略前后打印顺序，因为线程间打印也是竞态抢占资源的，和实际执行顺序可能不同），这是因为我们要进行拒绝策略的时候，正在遍历等待队列，但是因为单个任务执行很快，所以已经空闲的线程又立即从等待队列中获取队列首的任务进行执行，也就是任务2，其实从这里就看出线程优先从队列中取任务，因为没有去优先执行新来的任务10。可能会有一个疑问，任务5为啥没任何输出，这个我们这里用打印的方式去监测线程执行，其实是有延时的，本来队列是任务2、3、4、5、6，这个时候线程又拿走了2、3、4任务执行，任务5要被舍弃，正准备遍历队列要打印出来“将被丢弃的任务ID：5”，但是这个时候新来的任务唰唰来了，抢占了队列，这个时候遍历队列就是新的任务队列6、10、11、12、13了。
 
@@ -1961,7 +1963,7 @@ e. DiscardPolicy 静默拒绝
 
 从源代码可以看出这中策略拒绝其实不做任何事情，只是默默的将任务拒绝
 
-![3dd6ded8c194218cf810c987c933ebfa](Java高并发与多线程.resources/8DD4BBB4-D893-4C97-927F-4228497CF2FA.png)
+![3dd6ded8c194218cf810c987c933ebfa](README.resources/8DD4BBB4-D893-4C97-927F-4228497CF2FA.png)
 
 f. 自定义拒绝策略
 
@@ -1993,7 +1995,7 @@ f. 自定义拒绝策略
 
 执行结果：
 
-![c238bfb3875705966e35bcf8de3f9a16](Java高并发与多线程.resources/35B98F2D-45F2-433C-ABDB-E3687C05E885.png)
+![c238bfb3875705966e35bcf8de3f9a16](README.resources/35B98F2D-45F2-433C-ABDB-E3687C05E885.png)
 
 可以看到10个任务被执行，而10个任务被拒绝，因为线程池最大负载能力就是10 （最大线程数量 5 + 等待队列大小 5）
 
@@ -2003,15 +2005,15 @@ a. 线程工厂默认实现
 
 我们需要线程池执行任务的时候直接把Runnable接口定义的任务提交给线程池就行，在之前我们没用线程池的时候要运行任务需要自己启动线程去运行我们的任务，那么线程池中的线程哪来的呢？其实肯定也是创建来的，线程池内部通过ThreadFactory线程工厂来创建线程池，。在上一节中我们没有显式的指定ThreadFactory参数，其实线程池内容定义了其实例，我们可以看下：
 
-![53a6740f2c32206aa33346fc5d796b2d](Java高并发与多线程.resources/57B0C6BF-652D-4C33-AF61-15368F97A266.png)
+![53a6740f2c32206aa33346fc5d796b2d](README.resources/57B0C6BF-652D-4C33-AF61-15368F97A266.png)
 
 可以看到调用了其它重载构造器，只不过加入默认线程工厂的实现：Executors.defaultThreadFactory()，通过线程工具类实现的默认ThreadFactory，我们进去看下具体实现：
 
-![dcc4881354edaaa0a4d46640924013ee](Java高并发与多线程.resources/CBD817CF-4671-47ED-819D-B6D95E7A01FC.png)
+![dcc4881354edaaa0a4d46640924013ee](README.resources/CBD817CF-4671-47ED-819D-B6D95E7A01FC.png)
 
 继续跟踪：
 
-![d4167a10ab95eba1cd8f7c7973020e92](Java高并发与多线程.resources/CB4FFFEB-5E3F-4DD1-A1C0-020748D1DBFA.png)
+![d4167a10ab95eba1cd8f7c7973020e92](README.resources/CB4FFFEB-5E3F-4DD1-A1C0-020748D1DBFA.png)
 
 在这里我们可以默认线程池定义线程工厂及如何创建线程逻辑：定义了线程池数量、线程组、线程数量、线程名称前缀等变量；在构造器中获取线程组（先获取系统级的SecurityManager对应的线程组，如果没有则用当前创建线程池对象所在线程的线程组，例如如果我们在主线程中定义了线程池，那么这里就会用主线程的线程组）；定义线程名称前缀 ”pool-" +线程池数量 + “-thread-“；然后在新建线程的时候，通过new Thread方法创建线程，并设置线程为非守护线程（意味着线程池在执行完任务后线程池不会退出），设置线程优先级为正常的优先级。
 
@@ -2059,7 +2061,7 @@ static ExecutorService getThreadPool2(){
 
 执行结果：
 
-![d6d1e228c1cfa11f0afff64c216c3b71](Java高并发与多线程.resources/50B90485-71DE-4BC2-AB6E-767D3E7E1815.png)
+![d6d1e228c1cfa11f0afff64c216c3b71](README.resources/50B90485-71DE-4BC2-AB6E-767D3E7E1815.png)
 
 可以看到打印出的线程池中的线程所在线程组和当前主线程所在线程组是同一个：main
 
@@ -2092,7 +2094,7 @@ static ExecutorService getThreadPool1(){
 
 执行结果：
 
-![65bffb64d8d8172468bd4d43cda862c0](Java高并发与多线程.resources/0DF996C6-3DFC-4423-8781-C5E95767C326.png)
+![65bffb64d8d8172468bd4d43cda862c0](README.resources/0DF996C6-3DFC-4423-8781-C5E95767C326.png)
 
 可以看到线程池执行任务时按照设置打印出了线程对象信息，同时发现线程池线程组也是main，这是因为我们定义的线程池就是在主线程中定义的啊，所以默认和主线程一致了。
 
@@ -2108,11 +2110,11 @@ static ExecutorService getThreadPool1(){
 
 从源代码看线程池自身在相关方法里面并未做任何事情：
 
-![97c7c66a921963345f0e6c33d575593a](Java高并发与多线程.resources/94FA3C70-F557-4115-938B-1480B483710F.png)
+![97c7c66a921963345f0e6c33d575593a](README.resources/94FA3C70-F557-4115-938B-1480B483710F.png)
 
-![f7cc6882d90e179ed8eff69e35147212](Java高并发与多线程.resources/CD7C87A8-7785-4A14-9891-AB0782C34F51.png)
+![f7cc6882d90e179ed8eff69e35147212](README.resources/CD7C87A8-7785-4A14-9891-AB0782C34F51.png)
 
-![f97d6283551f1ee923d0b7ca89f1903e](Java高并发与多线程.resources/46A77EAC-84FD-4310-B031-12D933201BD5.png)
+![f97d6283551f1ee923d0b7ca89f1903e](README.resources/46A77EAC-84FD-4310-B031-12D933201BD5.png)
 
 我们直接重写相关方法：
 
@@ -2191,39 +2193,39 @@ public class ThreadExecute {
 
 执行结果：
 
-![071a7426646bc55e96ffb106691e944a](Java高并发与多线程.resources/3ECA2CF2-C4C7-4EF9-9378-80C128586C26.png)
+![071a7426646bc55e96ffb106691e944a](README.resources/3ECA2CF2-C4C7-4EF9-9378-80C128586C26.png)
 
 从打印结果来看每次线程执行任务前后都对输出相应的动作信息，同时线程池在关闭后也会回调相关方法。
 
 这里我们仍然采用execute的方式提交，如果采用submit提交会报错：
 
-![f1343d839b59c545537e33beaf9f2632](Java高并发与多线程.resources/30245335-ACAE-4F52-A4F1-9A3F2AA4D6C7.png)
+![f1343d839b59c545537e33beaf9f2632](README.resources/30245335-ACAE-4F52-A4F1-9A3F2AA4D6C7.png)
 
 这是为什么呢？我们跟踪下源代码，如果采用submit的方法：
 
-![acd71c683433d6571bab399854279a4a](Java高并发与多线程.resources/AEC7E7AE-3447-4F1A-8557-41698B4CF7D9.png)
+![acd71c683433d6571bab399854279a4a](README.resources/AEC7E7AE-3447-4F1A-8557-41698B4CF7D9.png)
 
 其实调用的是ExecuteService定义的submit方法，这是一种有返回值形式的提交，但是这里是接口定义，我们继续往下看实现定义，但是有几种实现：
 
-![83836e27ee600800df85f7beed7ba81e](Java高并发与多线程.resources/C688D62A-6B1B-43F9-A63A-6A6DB9305710.png)
+![83836e27ee600800df85f7beed7ba81e](README.resources/C688D62A-6B1B-43F9-A63A-6A6DB9305710.png)
 
 根据最开始线程继承结构，我们的ThreadPoolExecutor是实现了AbstractExecutorService接口的，所以我们直接到AbstractExecutorService里面看下：
 
-![092a05081a968ec71dfba358ac49c067](Java高并发与多线程.resources/F577FBC7-2100-40CA-9E2F-579C157E1121.png)
+![092a05081a968ec71dfba358ac49c067](README.resources/F577FBC7-2100-40CA-9E2F-579C157E1121.png)
 
 这里有调用了newTaskFor方法：
 
-![b8d1f7e1ddd6b075cb7393ef3f64766d](Java高并发与多线程.resources/B47F15FC-EDFE-424C-9911-B8C61A62ADC2.png)
+![b8d1f7e1ddd6b075cb7393ef3f64766d](README.resources/B47F15FC-EDFE-424C-9911-B8C61A62ADC2.png)
 
 可以看到用FutureTask封装生成了新的一个对象，而返回的FutureTask对象正好发送给了线程池执行，也就是说用submit方法提交的任务线程池其实执行FutureTask方法的，我们在线程触发事件beforeExecute中用了强转((MyTask)r).getId()，而我们的MyTask和FutureTask除了都实现了Runnable接口之外并无任何继承关系，那么也就无法强转，所以就出现强转异常了。
 
 那么为什么execute方法就可以了呢？我们点击进入execute方法，直接就是顶层接口Executor的execute方法：
 
-![432f8169b5e26b275b3db2f6fe3ffef7](Java高并发与多线程.resources/D1DD94EA-6388-4208-90A8-B7CE64AFB7B8.png)
+![432f8169b5e26b275b3db2f6fe3ffef7](README.resources/D1DD94EA-6388-4208-90A8-B7CE64AFB7B8.png)
 
 我们再一路跟踪到ThreadPoolExecutor执行任务的地方：
 
-![24506483b246a4e8f5fdfb480bcc23a1](Java高并发与多线程.resources/EDE4F432-8639-4E21-9896-4A3DA89266AF.png)
+![24506483b246a4e8f5fdfb480bcc23a1](README.resources/EDE4F432-8639-4E21-9896-4A3DA89266AF.png)
 
 可以看到线程在执行任务的前后确实调用了beforeExecute和afterExecute方法，同时执行的任务还是Runnable实例，即未被封装或转换的MyTask对象，那么我们在触发方法里面使用强转自然也就没有任何问题了。
 
@@ -2233,11 +2235,11 @@ public class ThreadExecute {
 
 在某些场景下需要处理大量的数据，如果直接采用串行依次计算方式那么可能需要很长的时间，我们可以利用线程框架提供的ForkJoinPool来分配处理任务，即将一个大的任务发送给Fork/Join线程池，如果这个任务过大，那么可以将任务拆分成若干个小的任务，如果拆分出来的小的任务还大，那么还可以进一步分解，类似图(图片来自网络)：
 
-![0f0023ed1a7a99ad2bfdbed057bf58b4](Java高并发与多线程.resources/20A299C0-2553-4315-B4AF-B23679C332B8.png)
+![0f0023ed1a7a99ad2bfdbed057bf58b4](README.resources/20A299C0-2553-4315-B4AF-B23679C332B8.png)
 
 其实在框架内执行任务的就是一个个对应的线程，而一个线程可能被分配多个任务，每个线程有个队列缓存要计算的任务，同时线程如果执行完自己的任务进入空闲状态的话，可以从别的线程任务队列中拿任务执行，即工作窃取：
 
-![64a116f3af25253cd68e9c0ea2b0f840](Java高并发与多线程.resources/770C1DF7-B2DF-4427-A8BC-8490E8418C2E.png)
+![64a116f3af25253cd68e9c0ea2b0f840](README.resources/770C1DF7-B2DF-4427-A8BC-8490E8418C2E.png)
 
 如果线程去区别的线程任务队列取任务的话是从对了尾端取，而线程从自己的任务队列取任务是从队列头，这样就有效避免任务获取冲突，当然如果只剩一个任务了就存在竞争了。
 
@@ -2246,7 +2248,7 @@ ForkJoinPool线程池核心方法：
 
 即提交ForkJoin形式的任务，而ForkJoinTask是是一个支持Fork即任务分解、Join即可等待任务执行结束获取结果的任务，其核心三个方法：fork、join、compute（执行具体计算任务）。ForkJoinTask主要的两个子类：RecursiveAction（没有返回值任务）和RecursiveTask（有返回值任务）
 
-![554bca2e7f9f414868dc95504ac006e5](Java高并发与多线程.resources/1B2E47BA-F5E0-43B7-A5D4-B7461E19990C.png)
+![554bca2e7f9f414868dc95504ac006e5](README.resources/1B2E47BA-F5E0-43B7-A5D4-B7461E19990C.png)
 
 * 使用示例
 
@@ -2360,7 +2362,7 @@ public class ThreadForkJoinPool {
 
 执行结果：
 
-![7f3ea211a4377852e1d1fde08e0ac6a7](Java高并发与多线程.resources/8FF64A9F-3073-4EAB-B1C5-81D855DFC614.png)
+![7f3ea211a4377852e1d1fde08e0ac6a7](README.resources/8FF64A9F-3073-4EAB-B1C5-81D855DFC614.png)
 
 
 ##### 3.4 **Future**
@@ -2370,6 +2372,188 @@ public class ThreadForkJoinPool {
 #### 5. JMM内存模型
 
 #### 6. 互斥处理
+##### 6.1 概述
+多线程在对临界区数据同时涉及状态变更的操作的时候就会出现数据安全问题，为了保证数据访问操作结果的正确性，Java提供显式的互斥操作，即通过锁来实现线程并发同步互斥（其实说互斥也是一种协作机制，互斥不是目的，最终共同完成目标任务才是目的，只不过过程中出现需要协调一致的方式）。
+
+##### 6.2 synchronized
+* 作用
+
+实现线程间同步，即对同步代码块加锁，使得同一时刻只能只能有一个线程进程进入同步代码块，换句话说实现同步代码块线程访问串行化。
+* 特点
+
+//TODO
+
+* 方式
+
+作用于实例方法
+
+```
+package com.skylaker.sync;
+
+import org.junit.jupiter.api.Test;
+
+/**
+ * synchronized 修饰实例方法
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/8/7 10:21 PM
+ */
+public class SynchronizedService {
+    private int sum = 0;
+
+    @Test
+    public void test() throws InterruptedException {
+        MyTask myTask = new MyTask(10000);
+
+        Thread thread1 = new Thread(myTask);
+        Thread thread2 = new Thread(myTask);
+        thread1.start();
+        thread2.start();
+
+        thread1.join();
+        thread2.join();
+
+        System.out.println("计算结果：" + sum);
+    }
+
+    class MyTask implements Runnable {
+        private int num = 0;
+
+        MyTask(int num){
+            this.num = num;
+        }
+
+        public void run() {
+            for(int i = 0; i < num; i++){
+                add();
+                Thread.yield();
+            }
+        }
+
+        // 修饰实例方法
+        private synchronized void add(){
+            sum++;
+        }
+    }
+}
+```
+
+作用于代码块
+
+```
+package com.skylaker.sync;
+
+import org.junit.jupiter.api.Test;
+
+/**
+ * synchronized 修饰代码块
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/8/7 10:21 PM
+ */
+public class SynchronizedService2 {
+    private  int sum = 0;
+    private Object lock = new Object();
+
+    @Test
+    public void test() throws InterruptedException {
+        MyTask myTask = new MyTask(10000);
+
+        Thread thread1 = new Thread(myTask);
+        Thread thread2 = new Thread(myTask);
+        thread1.start();
+        thread2.start();
+
+        thread1.join();
+        thread2.join();
+
+        System.out.println("计算结果：" + sum);
+    }
+
+    class MyTask implements Runnable {
+        private int num = 0;
+
+        MyTask(int num){
+            this.num = num;
+        }
+
+        public void run() {
+            for(int i = 0; i < num; i++){
+                add3();
+                Thread.yield();
+            }
+        }
+
+        // 修饰代码块：指定实例对象锁
+        private void add2(){
+            synchronized (lock){
+                sum++;
+            }
+        }
+
+        // 修饰代码块：指定类字节码对象锁
+        private void add3(){
+            synchronized (MyTask.class){
+                sum++;
+            }
+        }
+    }
+}
+```
+
+作用于静态方法
+
+```
+package com.skylaker.sync;
+
+import org.junit.jupiter.api.Test;
+
+/**
+ * synchronized 修饰静态方法
+ * @author skylaker2019@163.com
+ * @version V1.0 2019/8/7 10:21 PM
+ */
+public class SynchronizedService3 {
+    private static int sum = 0;
+
+    @Test
+    public void test() throws InterruptedException {
+        MyTask myTask = new MyTask(10000);
+
+        Thread thread1 = new Thread(myTask);
+        Thread thread2 = new Thread(myTask);
+        thread1.start();
+        thread2.start();
+
+        thread1.join();
+        thread2.join();
+
+        System.out.println("计算结果：" + sum);
+    }
+
+    static class MyTask implements Runnable {
+        private int num = 0;
+
+        MyTask(int num){
+            this.num = num;
+        }
+
+        public void run() {
+            for(int i = 0; i < num; i++){
+                add3();
+                Thread.yield();
+            }
+        }
+
+        // 修饰静态方法
+        private synchronized static void add3(){
+            sum++;
+        }
+    }
+}
+```
+
+* 注意点
+其实不管何种方式，对于不同线程操作同一个临界区，保证用的是同一把锁即可。
+
 
 #### 7. 并发容器
 
