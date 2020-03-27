@@ -9,11 +9,7 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
 
-    <description>Java Thread Learning Code</description>
-
-    <modules>
-        <module>code</module>
-    </modules>
+    <description>Thread Concurrent</description>
 
     <dependencies>
         <dependency>
