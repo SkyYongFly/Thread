@@ -9,7 +9,7 @@ public final void join() throws InterruptedException
 调用join方法后，调用端线程会等到被调用线程执行结束，例如测试代码：
 
 ``` java
-package com.skylaker.join;
+package com.skylaker.thread.join;
 
 /**
  * 等待线程结束运行 join
@@ -45,7 +45,7 @@ public class ThreadJoin {
 当然如果子线程运行足够快，有时会得到正确的最终结果 4950，不过很多情况下是小于4950的，就是因为主线程并未等到子线程执行完就直接打印结果了，但是如果主线程主动等到子线程执行完成就能始终得到最终的值。
 
 ```java
-package com.skylaker.join;
+package com.skylaker.thread.join;
 
 /**
  * 等待线程结束运行 join
@@ -89,7 +89,7 @@ public class ThreadJoin {
 调用的线程会让出占用的CPU资源，让其他线程先执行，但是当前线程让出之后并不是阻塞等待，而是又直接加入资源竞争，所以让出资源后可能还是当前线程继续运行。需要注意线程谦让并不会释放当前锁资源。
 
 ```java
-package com.skylaker.yield;
+package com.skylaker.thread.yield;
 
 /**
  * 线程谦让 yield

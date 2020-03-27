@@ -3,7 +3,7 @@
 * 有时候程序在运行时候需要有些后台默默运行的线程处理一些事情，例如JVM中的垃圾收集器负责垃圾回收。我们可以通过`public final void setDaemon(boolean on)`设置某个线程为守护线程：
 
 ```java
-package com.skylaker.daemon;
+package com.skylaker.thread.daemon;
 
 /**
  * 守护线程

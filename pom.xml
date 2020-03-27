@@ -12,9 +12,7 @@
     <description>Java Thread Learning Code</description>
 
     <modules>
-        <module>01_ThreadMethod</module>
-        <module>02_ThreadPool</module>
-        <module>03_ThreadSnyc</module>
+        <module>code</module>
     </modules>
 
     <dependencies>

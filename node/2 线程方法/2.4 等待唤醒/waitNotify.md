@@ -23,7 +23,7 @@ B. public final native void notify()
 ### 3 <span id="head31">代码实例</span>
 
 ```java
-package com.skylaker.wait;
+package com.skylaker.thread.wait;
 
 /**
  * 多线程协作：wait notify

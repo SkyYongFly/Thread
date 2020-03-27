@@ -15,7 +15,7 @@ B. public final void resume()
 我们在实际调用这两个方法的时候，发现其实已经被标注为舍弃方法，为啥呢？其实我们借鉴前面一些例子，就会发现挂起方法的一个大问题，就是在挂起期间不会释放当前锁对象，而suspend的线程必须被resume唤醒，试想如果出现差错，那么就会一直处于挂起状态，就一直持有锁对象，则导致其他等待的所有线程都得不到执行，严重影响系统功能。我们可以通过例子来测试下：
 
 ```java
-package com.skylaker.suspend;
+package com.skylaker.thread.suspend;
 
 /**
  * 线程挂起suspend和继续执行resume

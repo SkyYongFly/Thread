@@ -862,7 +862,7 @@ static ExecutorService getThreadPool1(){
 我们直接重写相关方法：
 
 ```java
-package com.skylaker.pool.worker;
+package com.skylaker.threadpool.worker;
 
 import java.util.concurrent.*;
 

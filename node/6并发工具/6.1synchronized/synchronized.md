@@ -17,7 +17,7 @@
 作用于实例方法
 
 ```java
-package com.skylaker.sync;
+package com.skylaker.concurrent.sync;
 
 import org.junit.jupiter.api.Test;
 
@@ -69,7 +69,7 @@ public class SynchronizedService {
 作用于代码块
 
 ```java
-package com.skylaker.sync;
+package com.skylaker.concurrent.sync;
 
 import org.junit.jupiter.api.Test;
 
@@ -131,7 +131,7 @@ public class SynchronizedService2 {
 作用于静态方法
 
 ```java
-package com.skylaker.sync;
+package com.skylaker.concurrent.sync;
 
 import org.junit.jupiter.api.Test;
 

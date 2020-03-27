@@ -26,7 +26,7 @@ ForkJoinPool线程池核心方法：
 ### 1.3 <span id="head79">使用示例</span>
 
 ```java
-package com.skylaker.pool.forkjoin;
+package com.skylaker.threadpool.forkjoin;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;

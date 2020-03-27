@@ -7,7 +7,7 @@
 ### 2 <span id="head45">不设置优先级的情况表现</span>
 
 ```java
-package com.skylaker.priority;
+package com.skylaker.thread.priority;
 
 /**
  * 线程优先级
@@ -67,7 +67,7 @@ public class ThreadPriority {
 ### 3 <span id="head46">设置线程优先级</span>
 
 ```java
-package com.skylaker.priority;
+package com.skylaker.thread.priority;
 
 import org.omg.PortableServer.THREAD_POLICY_ID;
 
@@ -131,7 +131,7 @@ public class ThreadPriority {
 好像也几乎是同时完成的，这不是设置线程优先级了吗？其实这个线程设置了优先级并不意味着低优先级的线程执行效率就一定慢，可能在当前环境某个时刻低优先级的线程就是突然更能抢占CPU。另外主要因为我们这里并没有设置线程间资源抢占，即你做你的事，我用我的资源，互不冲突，(另外计算的数也小)我们可以设置资源抢占来看具体情况：
 
 ```java
-package com.skylaker.priority;
+package com.skylaker.thread.priority;
 
 /**
  * 线程优先级

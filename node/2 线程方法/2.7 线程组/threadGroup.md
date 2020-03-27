@@ -7,7 +7,7 @@
 直接在 new Thread（）的时候传入当前线程要入驻的线程组
 
 ```java
-package com.skylaker.group;
+package com.skylaker.thread.group;
 
 /**
  * 线程组
